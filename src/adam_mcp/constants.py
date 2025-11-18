@@ -23,7 +23,9 @@ DEFAULT_SKETCH_NAME = "Sketch"
 MAX_DOCUMENT_NAME_LENGTH = 100
 
 # Default directory for CAD projects (configurable via environment variable)
-DEFAULT_PROJECTS_DIR = os.environ.get("ADAM_MCP_DEFAULT_DIR", "~/freecad_projects")
+DEFAULT_PROJECTS_DIR = os.environ.get(
+    "ADAM_MCP_DEFAULT_DIR", "~/Documents/Projects/adam_mcp/dev_projects"
+)
 
 # ============================================================================
 # Dimension Constraints (mm)
@@ -46,7 +48,7 @@ MAX_ANGLE_DEGREES = 360.0
 # ============================================================================
 
 AUTO_SAVE_INTERVAL = 5  # Save working file every N operations
-WORK_FILE_SUFFIX = ".work"  # Extension for working files
+WORK_FILE_SUFFIX = "_work"  # Suffix for working files (inserted before .FCStd extension)
 VALIDATE_BEFORE_COMMIT = True  # Safety gate for commits
 WORK_DIR_ENV_VAR = "ADAM_MCP_WORK_DIR"  # Environment variable for custom work directory
 

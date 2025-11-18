@@ -66,6 +66,47 @@ def reset_operation_counter() -> None:
 # ============================================================================
 
 
+def _is_valid_freecad_file(file_path: str) -> bool:
+    """
+    Validate that a file can be opened by FreeCAD
+
+    Args:
+        file_path: Path to file to validate
+
+    Returns:
+        True if file can be opened, False otherwise
+
+    This is used to detect corrupted .work files before attempting to use them.
+    """
+    if not FreeCAD:
+        return False
+
+    try:
+        # Try to open the file in a new document
+        # Store current active document to restore after validation
+        current_doc = FreeCAD.ActiveDocument
+        current_doc_name = current_doc.Name if current_doc else None
+
+        # Attempt to open the file
+        test_doc = FreeCAD.open(file_path)
+
+        # If successful, close it and restore previous state
+        if test_doc:
+            FreeCAD.closeDocument(test_doc.Name)
+
+        # Restore previous active document if there was one
+        if current_doc_name and current_doc_name in [
+            d.Name for d in FreeCAD.listDocuments().values()
+        ]:
+            FreeCAD.setActiveDocument(current_doc_name)
+
+        return True
+
+    except (RuntimeError, OSError):
+        # File is corrupted or invalid
+        return False
+
+
 def get_work_file_path(main_file_path: str) -> str:
     """
     Determine working file path from main file path
@@ -74,7 +115,11 @@ def get_work_file_path(main_file_path: str) -> str:
         main_file_path: Path to main .FCStd file
 
     Returns:
-        Path to working file
+        Path to working file (with _work suffix before .FCStd extension)
+
+    Examples:
+        - "bracket.FCStd" → "bracket_work.FCStd"
+        - "/path/to/bolt.FCStd" → "/path/to/bolt_work.FCStd"
 
     Uses environment variable ADAM_MCP_WORK_DIR if set, otherwise
     places working file in same directory as main file.
@@ -95,12 +140,14 @@ def get_work_file_path(main_file_path: str) -> str:
         # Create work directory if needed
         work_dir.mkdir(parents=True, exist_ok=True)
 
-        # Use main file's name in work directory
-        work_file_name = main_path.stem + WORK_FILE_SUFFIX
+        # Insert suffix before extension: "bracket.FCStd" → "bracket_work.FCStd"
+        work_file_name = main_path.stem + WORK_FILE_SUFFIX + main_path.suffix
         return str(work_dir / work_file_name)
 
     # Default: same directory as main file
-    return str(main_path.parent / (main_path.name + WORK_FILE_SUFFIX))
+    # Insert suffix before extension: "bracket.FCStd" → "bracket_work.FCStd"
+    work_file_name = main_path.stem + WORK_FILE_SUFFIX + main_path.suffix
+    return str(main_path.parent / work_file_name)
 
 
 def setup_working_file(main_file_path: str) -> str:
@@ -113,17 +160,21 @@ def setup_working_file(main_file_path: str) -> str:
     Returns:
         Path to working file
 
-    RESUME BY DEFAULT: If working file already exists, it is used as-is (preserves
-    uncommitted changes). Only copies main → work if working file doesn't exist.
-    This allows you to continue editing where you left off.
+    RESUME BY DEFAULT: If working file already exists and is valid, it is used as-is
+    (preserves uncommitted changes). If the working file exists but is corrupted,
+    it will be replaced with a fresh copy from the main file.
 
     Use rollback_working_changes() to explicitly discard changes and reset from main.
     """
     work_file_path = get_work_file_path(main_file_path)
 
-    # Resume editing if work file already exists (NEVER overwrite)
+    # Resume editing if work file already exists AND is valid
     if Path(work_file_path).exists():
-        return work_file_path
+        # Validate the work file by attempting to open it with FreeCAD
+        if FreeCAD and _is_valid_freecad_file(work_file_path):
+            return work_file_path
+        # Work file is corrupted - delete it and recreate from main
+        Path(work_file_path).unlink(missing_ok=True)
 
     # Initialize work file from main if main exists
     if Path(main_file_path).exists():
