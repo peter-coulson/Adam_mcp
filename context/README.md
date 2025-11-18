@@ -10,12 +10,37 @@ Document **WHY** decisions were made, not **WHAT** the code does or **HOW** it w
 
 ---
 
+## Documentation Structure
+
+### CLAUDE.md vs CLAUDE_DEV.md
+
+**CLAUDE.md** (user-facing system prompt):
+- **Audience:** Users working WITH adam-mcp (including Claude during demos)
+- **Content:** How to use the MCP server, workflow guidance, demo reference
+- **Size:** Minimal (~30 lines)
+- **Philosophy:** Tool discovery over documentation duplication
+
+**CLAUDE_DEV.md** (development documentation):
+- **Audience:** Developers working ON adam-mcp (modifying the codebase)
+- **Content:** Architecture, codebase structure, implementation guidance, quality checklists
+- **Size:** Comprehensive (~180 lines)
+- **Philosophy:** Single source of truth for development principles
+
+**context/** (strategic decisions):
+- **Audience:** Both users and developers
+- **Content:** WHY decisions were made, rationale, trade-offs
+- **Size:** Focused (~600 lines total across 6 files)
+- **Philosophy:** Explain reasoning, not mechanics
+
+---
+
 ## Structure
 
 ```
 context/
 ├── README.md       # This file (governance and entry point)
 ├── DECISIONS.md    # Core architectural choices
+├── DEMO.md         # Demo strategy and part selection rationale
 ├── OPERATIONS.md   # Operation roadmap and MVP status
 ├── TOOLS.md        # Tool design patterns (flat tools, MCP integration)
 └── WORKFLOW.md     # User experience architecture
@@ -50,12 +75,13 @@ context/
 
 | File | Purpose | Target | Hard Limit |
 |------|---------|--------|------------|
-| README.md | Governance | 60 lines | 100 lines |
+| README.md | Governance | 80 lines | 120 lines |
 | DECISIONS.md | Core architecture | 150 lines | 220 lines |
+| DEMO.md | Demo strategy | 80 lines | 120 lines |
 | OPERATIONS.md | Operation roadmap + MVP status | 120 lines | 180 lines |
 | TOOLS.md | Tool design patterns | 100 lines | 150 lines |
 | WORKFLOW.md | UX patterns | 150 lines | 200 lines |
-| **TOTAL** | | **~580 lines** | **850 lines** |
+| **TOTAL** | | **~680 lines** | **990 lines** |
 
 **Rationale:** Small project, focused scope. Exceeding limits = bloat or content that belongs in code.
 
