@@ -9,64 +9,32 @@ import sys
 from pathlib import Path
 from typing import NamedTuple
 
-# ============================================================================
-# Constants
-# ============================================================================
-
-# macOS paths
-MACOS_APP_PATH = "/Applications/FreeCAD.app/Contents"
-MACOS_RESOURCES = f"{MACOS_APP_PATH}/Resources"
-MACOS_LIB = f"{MACOS_RESOURCES}/lib"
-MACOS_MOD = f"{MACOS_RESOURCES}/Mod"
-MACOS_EXT = f"{MACOS_RESOURCES}/Ext"
-MACOS_FRAMEWORKS = f"{MACOS_APP_PATH}/Frameworks"
-
-# Linux paths (common distributions)
-LINUX_LIB = "/usr/lib/freecad/lib"
-LINUX_MOD = "/usr/lib/freecad/Mod"
-LINUX_EXT = "/usr/lib/freecad/Ext"
-
-# Windows paths (common installation)
-WINDOWS_PROGRAM_FILES = "C:/Program Files/FreeCAD"
-WINDOWS_LIB = f"{WINDOWS_PROGRAM_FILES}/bin"
-WINDOWS_MOD = f"{WINDOWS_PROGRAM_FILES}/Mod"
-WINDOWS_EXT = f"{WINDOWS_PROGRAM_FILES}/Ext"
-
-# Environment variable names
-ENV_VAR_FREECAD_PATH = "FREECAD_PATH"
-ENV_VAR_MACOS_LIBRARY = "DYLD_LIBRARY_PATH"
-ENV_VAR_MACOS_FRAMEWORK = "DYLD_FRAMEWORK_PATH"
-ENV_VAR_LINUX_LIBRARY = "LD_LIBRARY_PATH"
-ENV_VAR_WINDOWS_PATH = "PATH"
-
-# Messages
-MSG_SUCCESS = "✓ FreeCAD environment configured"
-MSG_LIBRARY_PATH = "  - Library path: {}"
-MSG_MODULES_PATH = "  - Modules path: {}"
-MSG_EXTENSIONS_PATH = "  - Extensions path: {}"
-MSG_PLATFORM = "  - Platform: {}"
-MSG_ENV_OVERRIDE = "  - Using FREECAD_PATH override: {}"
-
-ERROR_PATH_NOT_FOUND = "FreeCAD installation not found at expected path: {}"
-ERROR_PLATFORM_UNSUPPORTED = "Unsupported platform: {}"
-ERROR_INSTALL_INSTRUCTIONS = """
-FreeCAD not found. Please install FreeCAD:
-
-macOS:
-  brew install freecad
-
-Linux (Ubuntu/Debian):
-  sudo apt-get install freecad
-
-Linux (Fedora):
-  sudo dnf install freecad
-
-Windows:
-  Download from https://www.freecad.org/downloads.php
-
-Or set FREECAD_PATH environment variable to custom installation location.
-"""
-
+from adam_mcp.constants import (
+    ENV_VAR_FREECAD_PATH,
+    ENV_VAR_LINUX_LIBRARY,
+    ENV_VAR_MACOS_FRAMEWORK,
+    ENV_VAR_MACOS_LIBRARY,
+    ENV_VAR_WINDOWS_PATH,
+    ERROR_INSTALL_INSTRUCTIONS,
+    ERROR_PATH_NOT_FOUND,
+    ERROR_PLATFORM_UNSUPPORTED,
+    LINUX_EXT,
+    LINUX_LIB,
+    LINUX_MOD,
+    MACOS_EXT,
+    MACOS_FRAMEWORKS,
+    MACOS_LIB,
+    MACOS_MOD,
+    MSG_ENV_OVERRIDE,
+    MSG_EXTENSIONS_PATH,
+    MSG_LIBRARY_PATH,
+    MSG_MODULES_PATH,
+    MSG_PLATFORM,
+    MSG_SUCCESS,
+    WINDOWS_EXT,
+    WINDOWS_LIB,
+    WINDOWS_MOD,
+)
 
 # ============================================================================
 # Data Structures

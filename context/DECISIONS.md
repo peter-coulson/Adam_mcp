@@ -6,21 +6,22 @@ Key technical choices and rationale for adam-mcp.
 
 ## Core Architecture
 
-### Focused Server Architecture
+### Modular Architecture
 
-**Decision:** Keep MCP server logic in `src/adam_mcp/server.py` (<500 LOC). Extract infrastructure and utilities when boundaries are clear.
+**Decision:** Extract infrastructure into focused modules when boundaries become clear. Keep `server.py` as slim entry point (~170 LOC).
 
-**Valid extractions:**
-- ✅ `freecad_env.py` - Environment setup (must run before imports, platform-specific, reusable)
-- ✅ Shared utilities (reused >3 times across tools)
-- ✅ Infrastructure concerns (config, platform logic) with zero coupling to server
+**Current structure:**
+- ✅ `server.py` - Entry point + tool registration only
+- ✅ `constants.py` - Single source of truth for all constants
+- ✅ `models.py` - Pydantic models for type-safe data
+- ✅ `utils.py` - Core reusable utilities (validation, error formatting)
+- ✅ `working_files.py` - Working file infrastructure (auto-save, commit/rollback)
+- ✅ `freecad_env.py` - Environment setup (platform-specific)
+- ✅ `tools/` - Tool implementations organized by category
 
-**Invalid extractions (premature abstraction):**
-- ❌ `utils.py` with <3 functions
-- ❌ Directory structure (models/, validators/) for small codebases
-- ❌ Splitting MCP tool definitions across files
+**Evolution:** Started with single-file server.py (609 LOC). As boundaries became clear and LOC exceeded 500, extracted into focused modules. Each module has one clear responsibility.
 
-**Rationale:** Prevent premature abstraction while allowing meaningful separation. 3-5 tools = ~300-450 LOC server.py is maintainable. Infrastructure concerns (environment setup) deserve separate modules when they have clear, independent boundaries.
+**Rationale:** Extreme modularity enables easier testing, clearer organization, and better scalability as more tools are added. server.py remains simple and focused on MCP tool registration.
 
 ### Direct FreeCAD Imports
 
@@ -53,18 +54,25 @@ Key technical choices and rationale for adam-mcp.
 
 **Rationale:** Demonstrates MCP + FreeCAD integration, quality over quantity, 8-hour timeline
 
-### No File I/O (Initially)
+### Working File System
 
-**Decision:** In-memory operations, manual save via FreeCAD GUI
+**Decision:** Implemented working file system with auto-save, commit/rollback
 
-**Rationale:** Simpler security, focus on CAD operations, can add export later if needed
+**Implementation:**
+- Main file: User's actual .FCStd file (only modified on commit)
+- Working file: .work copy for safe editing (auto-saved every 5 operations)
+- Commit: Validates geometry before updating main file
+- Rollback: Discards working changes, resets from main file
+
+**Rationale:** Enables safe editing with crash protection, prevents corrupted geometry from being saved, supports undo workflow
 
 ---
 
 ## Quality Standards
 
-**Constants extraction:** All repeated values at top of `server.py` (DRY, no magic numbers)
-**Type hints required:** All functions typed for schema generation and error catching
+**Constants extraction:** ALL constants in `constants.py` (single source of truth, DRY, no magic numbers)
+**Type hints required:** All functions typed for schema generation and error catching. Use TYPE_CHECKING for FreeCAD imports to avoid runtime import issues.
+**Modular design:** Each module has one clear responsibility. New tool categories go in `tools/` directory.
 
 ---
 
@@ -72,6 +80,26 @@ Key technical choices and rationale for adam-mcp.
 
 **Active document pattern:** Tools check for active document, clear error if missing
 **Object references:** Use explicit naming (`sketch_name` parameter) to avoid collisions
+
+---
+
+---
+
+## Refactoring History
+
+### 2025-11-18: Modular Extraction
+
+**Trigger:** server.py exceeded 609 LOC, boundaries between concerns became clear
+
+**Actions:**
+- Extracted all constants to `constants.py` (80+ constants)
+- Extracted Pydantic models to `models.py`
+- Extracted utilities to `utils.py` (validation, error formatting, document helpers)
+- Extracted working file infrastructure to `working_files.py` (160 LOC)
+- Moved tool implementations to `tools/document.py`
+- Slimmed `server.py` to ~170 LOC (just registration)
+
+**Result:** Clear separation of concerns, easier to add new tools, better testability
 
 ---
 

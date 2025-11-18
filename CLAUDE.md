@@ -8,6 +8,31 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 
 **Tech Stack:** Python 3.10+, FreeCAD, FastMCP, Pydantic
 
+## Codebase Structure
+
+```
+src/adam_mcp/
+  ├── __init__.py           # Package metadata
+  ├── server.py             # Entry point + tool registration (~170 LOC)
+  ├── constants.py          # All constants (dimensions, messages, paths)
+  ├── models.py             # Pydantic models for type-safe data
+  ├── utils.py              # Core utilities (validation, error formatting)
+  ├── working_files.py      # Working file infrastructure (auto-save, commit/rollback)
+  ├── freecad_env.py        # FreeCAD environment setup
+  └── tools/
+      ├── __init__.py
+      └── document.py       # Document management tools
+      # Future: sketch.py, extrude.py, fillet.py
+```
+
+**Module Responsibilities:**
+- `server.py` - FastMCP initialization and tool registration only
+- `constants.py` - Single source of truth for all magic numbers and strings
+- `models.py` - Pydantic response/request models
+- `utils.py` - Reusable helpers (get_active_document, validate_dimension, etc.)
+- `working_files.py` - File management system with auto-save
+- `tools/` - Tool implementations organized by category
+
 ## Software Principles
 
 ### Universal Principles (apply to ALL code)
@@ -22,7 +47,7 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 - **Direct API integration** - No socket layers, direct FreeCAD imports (simpler than reference implementation)
 - **Tool-centric design** - Each tool is self-contained with validation + execution logic
 - **Separation of concerns** - MCP tool definitions separate from FreeCAD operations
-- **Focused server** - Keep server.py for MCP tools and operations (<500 LOC). Extract infrastructure when boundaries are clear (see DECISIONS.md)
+- **Modular structure** - server.py is a slim entry point (~170 LOC). Infrastructure extracted into focused modules
 
 ### Implementation Guidance
 
@@ -50,15 +75,17 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 - Limit parameter ranges to prevent resource exhaustion
 
 **Constants & Configuration:**
-- Extract repeated values: default tolerances, unit conversions, naming patterns
-- No magic numbers in tool code
-- FreeCAD API constants in dedicated section
+- ALL constants live in `constants.py` - single source of truth
+- No magic numbers or duplicate strings anywhere in the codebase
+- Use named constants for dimensions, tolerances, messages, paths
 
 **Tool Design:**
 - Idempotent where possible (same inputs → same result)
 - Document prerequisites (e.g., "requires active document")
 - Return object references for use in subsequent calls
 - Progressive enhancement: core demo tools first, extras later
+- New tool categories go in `tools/` directory (e.g., `tools/sketch.py`)
+- Tool implementations separate from FastMCP registration in `server.py`
 
 ## Critical Workflow Rules
 
@@ -67,13 +94,15 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 
 ## Quality Checklist (before marking work complete)
 
-1. ✓ No magic numbers or duplicate strings? (extract to constants)
+1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants.py`)
 2. ✓ Each tool tested in demo flow (sketch → extrude → fillet)?
 3. ✓ Error messages explain what went wrong + how to fix?
-4. ✓ Type hints on all functions?
+4. ✓ Type hints on all functions? (mypy must pass)
 5. ✓ Tool docstrings clear for Claude to understand?
 6. ✓ Each module has one clear purpose?
 7. ✓ New validation logic extracted if used more than once?
+8. ✓ New tools in appropriate `tools/*.py` file?
+9. ✓ Imports use TYPE_CHECKING for FreeCAD?
 
 ## Documentation
 
