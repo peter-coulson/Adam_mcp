@@ -76,7 +76,7 @@ export FREECAD_PATH="/path/to/your/freecad/installation"
 
 **Default Projects Directory:**
 
-By default, projects are saved to `~/freecad_projects`. You can customize this:
+By default, projects are saved to `~/Documents/Projects/adam_mcp/dev_projects`. You can customize this:
 
 ```bash
 export ADAM_MCP_DEFAULT_DIR="~/my_cad_projects"
@@ -155,12 +155,12 @@ The server uses a **working file system** for safe editing:
 
 **Path Resolution:**
 
-All document paths support flexible formats:
-- **Filename only**: `"bracket.FCStd"` → resolves to `~/freecad_projects/bracket.FCStd`
-- **Relative path**: `"designs/bracket.FCStd"` → resolves to `~/freecad_projects/designs/bracket.FCStd`
-- **Absolute path**: `"~/custom/bracket.FCStd"` → uses exact path specified
+For security, all document paths must be relative (within the configured projects directory):
+- **Filename only**: `"bracket.FCStd"` → saved to `{DEFAULT_PROJECTS_DIR}/bracket.FCStd`
+- **Subdirectory**: `"designs/bracket.FCStd"` → saved to `{DEFAULT_PROJECTS_DIR}/designs/bracket.FCStd`
+- **Nested paths**: `"fasteners/m10/bolt.FCStd"` → saved to `{DEFAULT_PROJECTS_DIR}/fasteners/m10/bolt.FCStd`
 
-This makes it easy to work with projects without typing full paths every time.
+Absolute paths (~/path or /path) are rejected for security. All files stay within the configured projects directory.
 
 ### Manual Server Start
 
@@ -265,7 +265,7 @@ adam_mcp/
 
 2. **Local testing**: All test projects go to `./dev_projects/` (gitignored)
    ```bash
-   # Create test files - they stay local and don't pollute ~/freecad_projects
+   # Create test files - they stay local in dev_projects
    create_document("test_bracket.FCStd")  # → ./dev_projects/test_bracket.FCStd
    list_projects()                         # → lists files in ./dev_projects/
 

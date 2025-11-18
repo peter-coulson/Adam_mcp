@@ -58,7 +58,11 @@ def validate_document(doc: Any) -> bool:
                 print(f"Validation: Object {obj.Name} has invalid state: {obj.State}")
                 return False
 
-            # Check shape validity
+            # Skip shape validation for sketches (sketches are valid even with empty geometry)
+            if hasattr(obj, "TypeId") and obj.TypeId == "Sketcher::SketchObject":
+                continue
+
+            # Check shape validity for non-sketch objects
             if hasattr(obj, "Shape") and obj.Shape and not obj.Shape.isValid():
                 print(f"Validation: Object {obj.Name} has invalid shape")
                 return False

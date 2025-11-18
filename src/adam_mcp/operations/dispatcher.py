@@ -5,9 +5,17 @@ from collections.abc import Callable
 from typing import Any
 
 from adam_mcp.core.working_files import auto_save_after
+from adam_mcp.models.operations.features import CreatePad, CreatePocket, CreateThread
+from adam_mcp.models.operations.modifications import ModifyObject
 from adam_mcp.models.operations.primitives import CreateCylinder
 from adam_mcp.models.operations.sketches import AddSketchCircle, CreateSketch
 from adam_mcp.models.responses import OperationResult
+from adam_mcp.operations.handlers.features import (
+    execute_create_pad,
+    execute_create_pocket,
+    execute_create_thread,
+)
+from adam_mcp.operations.handlers.modifications import execute_modify_object
 from adam_mcp.operations.handlers.primitives import execute_create_cylinder
 from adam_mcp.operations.handlers.sketches import (
     execute_add_sketch_circle,
@@ -17,14 +25,26 @@ from adam_mcp.utils.errors import format_freecad_error
 from adam_mcp.utils.freecad import get_active_document
 from adam_mcp.utils.validation import validate_document
 
-# Union type of all supported operations (MVP Iteration 2: primitives + sketches)
-Operation = CreateCylinder | CreateSketch | AddSketchCircle
+# Union type of all supported operations (MVP Iteration 3: primitives + sketches + features + modifications)
+Operation = (
+    CreateCylinder
+    | CreateSketch
+    | AddSketchCircle
+    | CreatePad
+    | CreatePocket
+    | CreateThread
+    | ModifyObject
+)
 
 # Map operation actions to handler functions
 OPERATION_HANDLERS: dict[str, Callable[[Any, Any], str]] = {
     "create_cylinder": execute_create_cylinder,
     "create_sketch": execute_create_sketch,
     "add_sketch_circle": execute_add_sketch_circle,
+    "create_pad": execute_create_pad,
+    "create_pocket": execute_create_pocket,
+    "create_thread": execute_create_thread,
+    "modify_object": execute_modify_object,
 }
 
 

@@ -91,10 +91,12 @@ def open_document(path: str = Field(description="Path to .FCStd file to open")) 
     to discard uncommitted changes and reset from the main file.
 
     Args:
-        path: Path to existing .FCStd file. Can be:
-            - Just filename: "bracket.FCStd" → opens from ~/freecad_projects/
-            - Relative path: "designs/bracket.FCStd" → ~/freecad_projects/designs/
-            - Absolute path: "~/custom/bracket.FCStd" → exact location specified
+        path: Relative path to .FCStd file (relative to default projects directory).
+              Examples:
+            - Filename only: "bracket.FCStd"
+            - Subdirectory: "designs/bracket.FCStd"
+            - Nested path: "fasteners/m10/bolt.FCStd"
+            Note: Absolute paths (~/path or /path) are not allowed for security.
 
     Returns:
         Information about the opened document
@@ -149,10 +151,12 @@ def create_document(
     the main file.
 
     Args:
-        path: Path where document will be saved. Can be:
-            - Just filename: "bracket.FCStd" → saved to ~/freecad_projects/
-            - Relative path: "designs/bracket.FCStd" → ~/freecad_projects/designs/
-            - Absolute path: "~/custom/bracket.FCStd" → exact location specified
+        path: Relative path where document will be saved (relative to default projects directory).
+              Examples:
+            - Filename only: "bracket.FCStd"
+            - Subdirectory: "designs/bracket.FCStd"
+            - Nested path: "fasteners/m10/bolt.FCStd"
+            Note: Absolute paths (~/path or /path) are not allowed for security.
 
     Returns:
         Information about the created document
@@ -174,14 +178,26 @@ def create_document(
         # Create new document
         doc = FreeCAD.newDocument()
 
-        # Save as main file (initial blank state)
-        doc.saveAs(main_file_path)
+        # Disable backup file creation during document creation to prevent .FCBak files
+        param_group = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document")
+        original_backup_setting = param_group.GetBool("CreateBackupFiles", True)
 
-        # Setup working file (copies main → work)
-        work_file_path = setup_working_file(main_file_path)
-        set_active_files(main_file_path, work_file_path)
-        doc.saveAs(work_file_path)
-        reset_operation_counter()
+        try:
+            # Disable backups during initial save
+            param_group.SetBool("CreateBackupFiles", False)
+
+            # Save as main file (initial blank state)
+            doc.saveAs(main_file_path)
+
+            # Setup working file (copies main → work)
+            work_file_path = setup_working_file(main_file_path)
+            set_active_files(main_file_path, work_file_path)
+            doc.saveAs(work_file_path)
+            reset_operation_counter()
+
+        finally:
+            # Restore original backup setting
+            param_group.SetBool("CreateBackupFiles", original_backup_setting)
 
         return DocumentInfo(
             name=doc.Name, object_count=len(doc.Objects), objects=[obj.Name for obj in doc.Objects]
@@ -220,8 +236,20 @@ def commit_changes() -> str:
         raise RuntimeError(ERROR_VALIDATION_FAILED)
 
     try:
-        # Save work file one more time
-        doc.save()
+        # Disable backup file creation during commit to prevent .FCBak files
+        param_group = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document")
+        original_backup_setting = param_group.GetBool("CreateBackupFiles", True)
+
+        try:
+            # Disable backups during save
+            param_group.SetBool("CreateBackupFiles", False)
+
+            # Save work file one more time
+            doc.save()
+
+        finally:
+            # Restore original backup setting
+            param_group.SetBool("CreateBackupFiles", original_backup_setting)
 
         # Copy work → main (atomic commit)
         shutil.copy2(work_file_path, main_file_path)

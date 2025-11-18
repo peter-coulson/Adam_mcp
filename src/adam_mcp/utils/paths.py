@@ -7,32 +7,49 @@ from adam_mcp.constants.paths import DEFAULT_PROJECTS_DIR
 
 def resolve_project_path(path: str) -> str:
     """
-    Resolve project path to absolute path.
+    Resolve project path to absolute path within the default projects directory.
 
-    If path is relative or just a filename, resolves to DEFAULT_PROJECTS_DIR.
-    If path is absolute, returns as-is after expansion.
+    SECURITY: Only relative paths are allowed. All files must be within the
+    configured projects directory (DEFAULT_PROJECTS_DIR). This prevents
+    accidental or malicious file system access outside the project sandbox.
 
     Args:
-        path: Path to resolve (can be relative, absolute, or just filename)
+        path: Relative path (filename or subdirectory/filename)
 
     Returns:
-        Absolute path to project file
+        Absolute path to project file within DEFAULT_PROJECTS_DIR
+
+    Raises:
+        ValueError: If path is absolute (starts with / or ~)
 
     Examples:
-        "bracket.FCStd" -> "~/freecad_projects/bracket.FCStd" (expanded)
-        "designs/bracket.FCStd" -> "~/freecad_projects/designs/bracket.FCStd"
-        "~/custom/bracket.FCStd" -> "~/custom/bracket.FCStd" (expanded)
-        "/abs/path/bracket.FCStd" -> "/abs/path/bracket.FCStd"
+        "bracket.FCStd" -> "{DEFAULT_PROJECTS_DIR}/bracket.FCStd"
+        "designs/bracket.FCStd" -> "{DEFAULT_PROJECTS_DIR}/designs/bracket.FCStd"
+        "fasteners/m10/bolt.FCStd" -> "{DEFAULT_PROJECTS_DIR}/fasteners/m10/bolt.FCStd"
     """
     path_obj = Path(path).expanduser()
 
-    # If already absolute, return as-is
+    # Reject absolute paths for security
     if path_obj.is_absolute():
-        return str(path_obj.resolve())
+        raise ValueError(
+            f"Absolute paths not allowed: '{path}'. "
+            f"Use relative paths only (e.g., 'bracket.FCStd' or 'designs/bracket.FCStd'). "
+            f"Files will be saved to: {DEFAULT_PROJECTS_DIR}"
+        )
 
     # Relative path or filename → resolve to default projects directory
     default_dir = Path(DEFAULT_PROJECTS_DIR).expanduser().resolve()
-    return str(default_dir / path_obj)
+    resolved_path = (default_dir / path_obj).resolve()
+
+    # Security check: ensure resolved path is still within default directory
+    # (prevents ../../../etc/passwd type attacks)
+    if not str(resolved_path).startswith(str(default_dir)):
+        raise ValueError(
+            f"Path escapes project directory: '{path}'. "
+            f"Paths must stay within: {DEFAULT_PROJECTS_DIR}"
+        )
+
+    return str(resolved_path)
 
 
 def ensure_projects_directory() -> Path:

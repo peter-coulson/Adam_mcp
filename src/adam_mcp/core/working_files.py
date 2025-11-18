@@ -196,6 +196,9 @@ def auto_save_working_file() -> None:
 
     Saves the active document to the working file path.
     Silent fail if no active document or no working file configured.
+
+    Note: Temporarily disables FreeCAD backup file creation during auto-save
+    to prevent accumulation of timestamped .FCBak files.
     """
     global _active_work_file_path
 
@@ -205,7 +208,19 @@ def auto_save_working_file() -> None:
     doc = FreeCAD.ActiveDocument
     if doc and _active_work_file_path:
         try:
-            doc.save()
+            # Temporarily disable backup file creation for auto-save
+            # to prevent accumulation of timestamped .FCBak files
+            param_group = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document")
+            original_backup_setting = param_group.GetBool("CreateBackupFiles", True)
+
+            try:
+                # Disable backups during auto-save
+                param_group.SetBool("CreateBackupFiles", False)
+                doc.save()
+            finally:
+                # Restore original backup setting
+                param_group.SetBool("CreateBackupFiles", original_backup_setting)
+
         except (RuntimeError, OSError) as e:
             # Log but don't crash - auto-save is best-effort
             print(f"Warning: Auto-save failed: {e}")
