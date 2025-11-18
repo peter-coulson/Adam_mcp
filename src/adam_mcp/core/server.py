@@ -45,6 +45,7 @@ from adam_mcp.tools.document import (  # noqa: E402
 )
 from adam_mcp.tools.execution import (  # noqa: E402
     add_sketch_circle,
+    add_sketch_polygon,
     create_cylinder,
     create_pad,
     create_pocket,
@@ -450,6 +451,91 @@ def add_sketch_circle_tool(
         sketch_name=sketch_name,
         center=center,
         radius=radius,
+        description=description,
+    )
+
+
+@mcp.tool()
+def add_sketch_polygon_tool(
+    sketch_name: str,
+    center: tuple[float, float],
+    radius: float,
+    sides: int,
+    description: str,
+) -> OperationResult:
+    """
+    Add regular polygon to existing sketch.
+
+    Adds a regular polygon (hexagon, octagon, etc.) at the specified center
+    position with the specified circumradius and number of sides to an existing
+    sketch. The polygon is created with vertices evenly distributed around the
+    center point.
+
+    All parameters are validated before execution using 3-layer validation:
+    1. Pydantic validation (types, ranges)
+    2. Semantic validation (sketch exists, is valid sketch object)
+    3. Geometry validation (valid polygon geometry)
+
+    Args:
+        sketch_name: Name of sketch to add polygon to (must exist in document)
+        center: Polygon center (x, y) in mm within sketch coordinate system
+        radius: Circumradius in mm (range: 0.1 - 10000) - distance from center to vertex
+        sides: Number of sides (range: 3-12) - triangle to dodecagon
+        description: Human-readable description of the polygon
+
+    Returns:
+        OperationResult with success status, message, and affected sketch name
+
+    Example - Hexagon for allen key socket:
+        add_sketch_polygon_tool(
+            sketch_name="HexSocket",
+            center=(0, 0),
+            radius=4,
+            sides=6,
+            description="Hexagonal allen key socket"
+        )
+
+    Example - Octagonal feature:
+        add_sketch_polygon_tool(
+            sketch_name="OctProfile",
+            center=(10, 15),
+            radius=8,
+            sides=8,
+            description="Octagonal feature at (10, 15)"
+        )
+
+    Example - Triangle:
+        add_sketch_polygon_tool(
+            sketch_name="TriProfile",
+            center=(0, 0),
+            radius=5,
+            sides=3,
+            description="Triangular profile"
+        )
+
+    Common polygon types:
+        - sides=3: Triangle
+        - sides=4: Square (consider add_sketch_rectangle for aligned squares)
+        - sides=5: Pentagon
+        - sides=6: Hexagon (common for bolt heads, allen keys)
+        - sides=8: Octagon
+        - sides=12: Dodecagon
+
+    Workflow:
+        1. Create sketch with create_sketch_tool
+        2. Add polygon with this tool
+        3. Extrude with create_pad_tool or cut with create_pocket_tool
+
+    Note:
+        Use list_objects_tool() to find available sketch names.
+        Center coordinates are in the sketch's 2D coordinate system.
+        Radius is the circumradius (center to vertex), not the inradius.
+    """
+    return add_sketch_polygon(
+        sketch_name=sketch_name,
+        center=center,
+        radius=radius,
+        sides=sides,
         description=description,
     )
 

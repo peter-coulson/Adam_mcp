@@ -73,4 +73,45 @@ class AddSketchCircle(BaseOperation):
     )
 
 
+class AddSketchPolygon(BaseOperation):
+    """
+    Add regular polygon to existing sketch.
+
+    Example:
+        {
+            "action": "add_sketch_polygon",
+            "sketch_name": "HexSocket",
+            "center": [0, 0],
+            "radius": 4,
+            "sides": 6,
+            "description": "Hexagonal allen key socket"
+        }
+
+    Note: Center coordinates are in the sketch's 2D coordinate system.
+    Radius is the circumradius (distance from center to vertex).
+    Use list_objects() to find available sketch names.
+    """
+
+    action: Literal["add_sketch_polygon"] = Field(
+        default="add_sketch_polygon",
+        description="Operation type (always 'add_sketch_polygon')",
+    )
+    sketch_name: str = Field(
+        description="Name of sketch to add polygon to (must exist in document)",
+    )
+    center: tuple[float, float] = Field(
+        description="Polygon center (x, y) in mm within sketch coordinate system",
+    )
+    radius: float = Field(
+        gt=MIN_DIMENSION_MM,
+        lt=MAX_DIMENSION_MM,
+        description=f"Circumradius in mm (range: {MIN_DIMENSION_MM}-{MAX_DIMENSION_MM})",
+    )
+    sides: int = Field(
+        ge=3,
+        le=12,
+        description="Number of sides (3-12: triangle to dodecagon)",
+    )
+
+
 # Post-MVP: AddSketchLine, AddSketchArc, AddSketchRectangle, AddSketchConstraint
