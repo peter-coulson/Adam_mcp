@@ -6,17 +6,21 @@ Core technical choices and rationale for adam-mcp.
 
 ## MVP Scope & Success
 
-**Goal:** Demonstrate creation + inspection + editing workflows with M10 bolt + washer
+**Goal:** Demonstrate creation + modification workflows with complete-looking industrial parts
 
 **Success criteria:**
-- Create M10×40 bolt from primitives (cylinder → threads)
-- Create M10 washer from sketches (sketch → circles → pad → pocket)
-- Modify washer properties (inspect → analyze → modify thickness)
-- Verify dimensional compatibility (bolt fits washer)
-- 3-layer validation + clear error messages
+- **Part 1 (Creation):** Create 4-inch Class 150 pipe flange from sketches (concentric circles → pad → bolt holes → raised face)
+- **Part 2 (Modification):** Modify pre-existing M3 nyloc nut properties (inspect → modify pocket depth, chamfer size, nylon ring position)
+- Show 3-layer validation + clear error messages
+- Both parts look 100% complete (no missing visual features like threads)
 
-**Rationale:** Shows real engineering value (ISO standards, mating parts, iterative design).
-See **DEMO_PLAN.md** for test scenarios, **OPERATIONS.md** for implementation status.
+**Rationale:**
+- Pipe flange looks complete (flanges use bolts, don't need threads)
+- Nyloc nut demonstrates editing beyond current creation capabilities (uses Revolution, Chamfer, Fusion operations we don't have yet)
+- Shows real engineering value (ISO 7005 flange, ISO fastener)
+- Demonstrates full creation workflow + modification workflow
+
+See **OPERATIONS.md** for implementation status.
 
 ---
 
@@ -138,12 +142,12 @@ See **OPERATIONS.md** for expansion roadmap.
 
 **Rationale:**
 - Speed-to-demo prioritized over test infrastructure
-- Visual validation sufficient (does bolt look correct?)
-- Real-world testing more valuable (create actual M10 bolt)
+- Visual validation sufficient (does pipe flange look correct?)
+- Real-world testing more valuable (create actual industrial parts)
 - Small surface area (7 operations) - manageable to validate manually
 
 **Validation approach:**
-1. Create test parts via MCP
+1. Create test parts via MCP (pipe flange, modify nyloc nut)
 2. Open in FreeCAD GUI
 3. Verify dimensions, geometry, feature tree
 4. Test error handling with invalid inputs

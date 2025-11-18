@@ -4,7 +4,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from adam_mcp.constants.dimensions import MAX_DIMENSION_MM, MIN_DIMENSION_MM
+from adam_mcp.constants.dimensions import MAX_ANGLE_DEGREES, MAX_DIMENSION_MM, MIN_DIMENSION_MM
+from adam_mcp.constants.operations import MAX_DOCUMENT_NAME_LENGTH
 from adam_mcp.models.base import BaseOperation
 
 
@@ -28,7 +29,9 @@ class CreateCylinder(BaseOperation):
         default="create_cylinder",
         description="Operation type (always 'create_cylinder')",
     )
-    name: str = Field(max_length=100, description="Object name (must be unique in document)")
+    name: str = Field(
+        max_length=MAX_DOCUMENT_NAME_LENGTH, description="Object name (must be unique in document)"
+    )
     radius: float = Field(
         gt=MIN_DIMENSION_MM,
         lt=MAX_DIMENSION_MM,
@@ -44,8 +47,8 @@ class CreateCylinder(BaseOperation):
         description="Position (x, y, z) in mm. Optional, defaults to origin.",
     )
     angle: float = Field(
-        default=360,
+        default=MAX_ANGLE_DEGREES,
         gt=0,
-        le=360,
-        description="Sweep angle in degrees (0-360). Default 360 for full cylinder.",
+        le=MAX_ANGLE_DEGREES,
+        description=f"Sweep angle in degrees (0-{MAX_ANGLE_DEGREES}). Default {MAX_ANGLE_DEGREES} for full cylinder.",
     )

@@ -4,15 +4,24 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 
 ## MVP Scope
 
-**Target:** Engineering-grade machine parts (bolts, nuts, flanges, gears)
-**Success:** "Create M10×40 hex bolt" → Accurate ISO bolt in seconds
+**Target:** Engineering-grade machine parts (pipe flanges, washers, nuts, bolts)
+**Demo Success Criteria:**
+- **Part 1 (Creation):** "Create 4-inch Class 150 pipe flange" → Complete ISO 7005 flange in ~2 minutes
+- **Part 2 (Modification):** "Modify M3 nyloc nut properties" → Edit pre-existing complex part beyond current creation capabilities
+
+**Why This Demo:**
+- ✅ Pipe flange looks 100% complete (no threads needed - flanges use bolts)
+- ✅ Nyloc nut demonstrates modification of complex parts (uses Revolution, Chamfer, Fusion operations we don't have yet)
+- ✅ Both parts fully professional - no visible incompleteness
+- ✅ Shows full creation workflow + modification workflow
+
 **Tech Stack:** Python 3.10+, FreeCAD, FastMCP, Pydantic
 
 **Tool Philosophy:** Operation-specific tools with flat parameters (MCP-compatible, no Python fallback)
 1. `list_objects()` - Lightweight overview (✅ implemented)
 2. `get_object_details(names)` - Rich context on-demand (✅ implemented)
 3. Operation tools (one per operation, flat parameters):
-   - `create_cylinder_tool()`, `create_pad_tool()`, `create_fillet_tool()`, etc.
+   - `create_cylinder_tool()`, `create_pad_tool()`, `create_pocket_tool()`, etc.
    - Each tool has simple, flat parameters (no nested objects)
    - Natural discovery via tool list (no separate discovery tool needed)
    - ~17 tools for MVP, ~32 tools for full feature set
@@ -155,7 +164,7 @@ src/adam_mcp/
 ## Quality Checklist (before marking work complete)
 
 1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants/`)
-2. ✓ Tool validated with real example via FreeCAD GUI (e.g., M10 bolt creation)?
+2. ✓ Tool validated with real example via FreeCAD GUI (e.g., pipe flange creation)?
 3. ✓ Error messages explain what went wrong + how to fix?
 4. ✓ Type hints on all functions? (mypy must pass)
 5. ✓ Tool docstrings clear for Claude to understand?

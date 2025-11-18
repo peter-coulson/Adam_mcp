@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import Field
 
 from adam_mcp.constants.dimensions import MAX_DIMENSION_MM, MIN_DIMENSION_MM
+from adam_mcp.constants.operations import MAX_DOCUMENT_NAME_LENGTH
 from adam_mcp.models.base import BaseOperation
 
 
@@ -33,7 +34,7 @@ class CreatePad(BaseOperation):
         description="Operation type (always 'create_pad')",
     )
     name: str = Field(
-        max_length=100,
+        max_length=MAX_DOCUMENT_NAME_LENGTH,
         description="Name for the pad feature (must be unique in document)",
     )
     sketch: str = Field(
@@ -76,7 +77,7 @@ class CreatePocket(BaseOperation):
         description="Operation type (always 'create_pocket')",
     )
     name: str = Field(
-        max_length=100,
+        max_length=MAX_DOCUMENT_NAME_LENGTH,
         description="Name for the pocket feature (must be unique in document)",
     )
     sketch: str = Field(
@@ -122,7 +123,7 @@ class CreateThread(BaseOperation):
         description="Operation type (always 'create_thread')",
     )
     name: str = Field(
-        max_length=100,
+        max_length=MAX_DOCUMENT_NAME_LENGTH,
         description="Name for threaded object (must be unique in document)",
     )
     base: str = Field(

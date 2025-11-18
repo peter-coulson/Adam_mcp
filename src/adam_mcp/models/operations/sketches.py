@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import Field
 
 from adam_mcp.constants.dimensions import MAX_DIMENSION_MM, MIN_DIMENSION_MM
+from adam_mcp.constants.operations import MAX_DOCUMENT_NAME_LENGTH
 from adam_mcp.models.base import BaseOperation
 
 
@@ -29,7 +30,7 @@ class CreateSketch(BaseOperation):
         description="Operation type (always 'create_sketch')",
     )
     name: str = Field(
-        max_length=100,
+        max_length=MAX_DOCUMENT_NAME_LENGTH,
         description="Sketch name (must be unique in document)",
     )
     plane: Literal["XY", "XZ", "YZ"] = Field(

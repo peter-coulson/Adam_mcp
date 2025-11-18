@@ -1,207 +1,229 @@
 # Demo Plan - adam-mcp
 
-Demonstration strategy for adam-mcp MCP server showcasing **creation from scratch**, **intelligent editing via context discovery**, and **property modification**.
+Demonstration strategy for adam-mcp MCP server showcasing **complete-looking industrial parts** through **creation from scratch** and **modification of complex existing parts**.
 
 ---
 
 ## Demo Philosophy
 
-This demo showcases **three key value propositions** of the adam-mcp MCP server:
+This demo showcases **two key value propositions** of the adam-mcp MCP server:
 
-1. **Structured CAD Operations** - Create engineering parts from scratch using validated operations
-2. **Intelligent Context Discovery** - Claude inspects existing designs, understands dimensions
-3. **Property Modification** - Claude edits object properties based on inspection and requirements ⭐ NEW
+1. **Full Creation Workflow** - Create complex industrial parts from scratch that look 100% complete (no missing visual features)
+2. **Modification Beyond Current Capabilities** - Edit pre-existing complex parts that use operations we can't create yet (Revolution, Chamfer, Fusion)
 
-**Why this matters:** Most CAD automation is blind execution. adam-mcp enables Claude to **understand what exists**, **inspect properties**, and **modify them intelligently** - like a human engineer would.
+**Why this matters:** Shows both what the system can create NOW (pipe flange) and its extensibility via modification (nyloc nut with advanced features). Both parts look professionally complete - no "half-finished" appearance like threaded parts without visible threads.
 
 ---
 
 ## Demo Flow (2-3 minutes)
 
-### Part 1: Create M10 Bolt from Scratch (0:00-0:30)
-**Shows: Basic primitive operation**
+### Part 1: Create 4-inch Class 150 Pipe Flange from Scratch (0:00-2:00)
+**Shows: Complete multi-feature industrial part creation**
 
 ```
-User: "Create an M10×40 bolt"
+User: "Create a 4-inch Class 150 raised face weld neck pipe flange"
 
 Claude executes:
-  1. create_cylinder(name="Bolt", radius=5, height=40, description="M10 bolt body")
-```
-
-**Result:** Basic cylindrical bolt body (10mm diameter, 40mm length)
-**Operations used:** create_cylinder
-**Time:** 15-30 seconds
-
----
-
-### Part 2: Claude Inspects and Adds Threads (0:30-1:00)
-**Shows: Intelligent modification via inspection**
-
-```
-User: "Add M10 threads to the bolt"
-
-Claude workflow:
-  1. list_objects() → ["Bolt"]
-  2. get_object_details(["Bolt"]) → Inspects geometry
-
-  Claude reasoning:
-    "The bolt has a 5mm radius (10mm diameter).
-     This matches M10 threads (10mm nominal diameter).
-     I'll add ISO metric threads to the cylindrical surface."
-
-  3. create_thread(
-       name="ThreadedBolt",
-       base="Bolt",
-       face_index=2,
-       thread_type="M10",
-       length=35,
-       description="Add M10 threads to bolt shaft"
+  1. create_sketch(
+       name="FlangeProfile",
+       plane="XY",
+       description="Flange body profile with concentric circles"
      )
+
+  2. add_sketch_circle(
+       sketch_name="FlangeProfile",
+       center=(0, 0),
+       radius=82.5,
+       description="Outer diameter 165mm (6.5 inches)"
+     )
+
+  3. add_sketch_circle(
+       sketch_name="FlangeProfile",
+       center=(0, 0),
+       radius=57,
+       description="Bolt circle diameter 114mm (4.5 inches)"
+     )
+
+  4. add_sketch_circle(
+       sketch_name="FlangeProfile",
+       center=(0, 0),
+       radius=51,
+       description="Bore diameter 102mm (4 inches)"
+     )
+
+  5. create_pad(
+       name="FlangeBody",
+       sketch="FlangeProfile",
+       length=16,
+       description="Extrude flange body 16mm thick"
+     )
+
+  6. create_sketch(
+       name="BoltHole1",
+       plane="XY",
+       description="First bolt hole on bolt circle"
+     )
+
+  7. add_sketch_circle(
+       sketch_name="BoltHole1",
+       center=(57, 0),
+       radius=6.5,
+       description="M12 bolt hole (13mm diameter)"
+     )
+
+  8. create_pocket(
+       name="Hole1",
+       sketch="BoltHole1",
+       length=16,
+       description="Cut first bolt hole through flange"
+     )
+
+  [Repeat steps 6-8 for remaining 7 bolt holes at 45° intervals]
+
+  9. create_sketch(
+       name="RaisedFace",
+       plane="XY",
+       description="Raised face sealing surface"
+     )
+
+  10. add_sketch_circle(
+        sketch_name="RaisedFace",
+        center=(0, 0),
+        radius=58.5,
+        description="Raised face diameter 117mm"
+      )
+
+  11. create_pad(
+        name="FlangeFinal",
+        sketch="RaisedFace",
+        length=2,
+        description="Add 2mm raised face for gasket seal"
+      )
 ```
 
-**Result:** Professional M10 bolt with ISO-standard threads
-**Operations used:** list_objects, get_object_details, create_thread
-**Key insight:** Claude **understood** the existing geometry before modifying
-**Time:** 30 seconds
+**Result:** Professional ISO 7005 pipe flange with:
+- 165mm outer diameter
+- 8 bolt holes on 114mm bolt circle
+- 102mm bore for pipe welding
+- 2mm raised face for gasket sealing
+- Looks 100% complete (flanges don't need threads!)
 
----
-
-### Part 3: Create M10 Washer (1:00-1:45)
-**Shows: Sketch-based workflow (more complex than primitives)**
-
-```
-User: "Create an M10 washer to go with that bolt"
-
-Claude executes:
-  1. create_sketch(name="WasherProfile", plane="XY", description="Washer outer profile")
-  2. add_sketch_circle(sketch="WasherProfile", center=(0,0), radius=10, description="20mm OD")
-  3. create_pad(name="WasherBody", sketch="WasherProfile", length=2, description="Extrude 2mm")
-  4. create_sketch(name="Hole", plane="XY", description="Center hole")
-  5. add_sketch_circle(sketch="Hole", center=(0,0), radius=5.5, description="11mm ID for M10")
-  6. create_pocket(name="Washer", sketch="Hole", length=2, description="Cut center hole")
-```
-
-**Result:** M10 washer (20mm OD, 11mm ID, 2mm thick)
 **Operations used:** create_sketch, add_sketch_circle, create_pad, create_pocket
-**Progression:** Shows sketch-based workflow vs primitive-based (bolt)
-**Time:** 45 seconds
+**Key insight:** Multi-feature industrial component, visually complete, real-world ISO standard
+**Time:** ~2 minutes
 
 ---
 
-### Part 4: Claude Verifies and Modifies (1:45-2:30)
-**Shows: Inspection, analysis, and property modification** ⭐ KEY DEMO
+### Part 2: Modify Pre-Existing Nyloc Nut (2:00-3:00)
+**Shows: Editing complex parts beyond current creation capabilities** ⭐ KEY DEMO
 
 ```
-User: "Check if the washer fits the bolt, and make it heavy-duty"
+User: "Open the M3 nyloc nut and inspect it, then modify it for M6 size"
 
 Claude workflow:
-  1. list_objects() → ["ThreadedBolt", "Washer"]
-  2. get_object_details(["ThreadedBolt", "Washer"])
+  1. open_document(path="test_samples/nyloc_nut_m3.FCStd")
+
+  2. list_objects()
+     → Returns: Revolution, Pocket, Chamfer, Cut, Fusion, Compound
+
+  3. get_object_details(["Revolution", "Pocket", "Chamfer", "Cut"])
 
   Claude analysis:
-    "ThreadedBolt diameter: 10mm (M10 standard)
-     Washer inner diameter: 11mm → Clearance: 1mm ✓
-     Washer outer diameter: 20mm → Good bearing surface ✓
-     Washer thickness (Length): 2mm → Standard thickness
+    "This nyloc nut was created with advanced operations:
+     - Revolution (360° revolve) - we don't have this yet
+     - Chamfer (edge beveling) - we don't have this yet
+     - Fusion (boolean union) - we don't have this yet
+     - Cut (nylon ring) with specific placement
 
-     For heavy-duty use, increase thickness to 4mm."
+     Current pocket depth: 5mm (for M3 threads)
+     Chamfer size: 0.2mm
+     Nylon ring position: Z=2.6mm
 
-  3. modify_object(
-       name="Washer",
+     To adapt for M6 (larger), I need to:
+     - Increase pocket depth for deeper threads
+     - Adjust nylon ring height
+     - Scale chamfer appropriately"
+
+  4. modify_object(
+       name="Pocket",
        property="Length",
-       value=4.0,
-       description="Increase thickness for heavy-duty use"
+       value=8.0,
+       description="Increase pocket depth from 5mm to 8mm for M6 threads"
      )
 
-  4. get_object_details(["Washer"]) → Verify Length now shows 4mm
+  5. modify_object(
+       name="Cut",
+       property="Placement",
+       value=(0, 0, 4.2),
+       description="Reposition nylon ring higher for M6 nut geometry"
+     )
+
+  6. get_object_details(["Pocket", "Cut"])
+     → Verify changes applied correctly
+
+  7. open_in_freecad_gui()
 ```
 
-**Result:** Washer thickness increased from 2mm to 4mm based on requirements
-**Operations used:** list_objects, get_object_details, modify_object
-**Key insight:** Claude **inspects**, **analyzes**, and **modifies** properties intelligently
-**Time:** 45 seconds
-
----
-
-### Part 5: Show in FreeCAD GUI (2:30-2:45)
-**Shows: Professional 3D output**
-
-```
-Claude executes:
-  open_in_freecad_gui()
-```
-
-**Viewer shows:**
-- Professional 3D models with proper geometry
-- Threaded bolt with ISO-standard thread profile
-- Heavy-duty washer (4mm thick, modified from original 2mm)
-- Parts that match real engineering specifications
-
-**Time:** 15 seconds
+**Result:** Modified nyloc nut adapted for different size
+**Operations used:** list_objects, get_object_details, modify_object, open_in_freecad_gui
+**Key insight:** Can edit complex parts using operations we can't create yet (Revolution, Chamfer, Fusion)
+**Demonstrates:** Modification workflow works on pre-existing CAD files
+**Time:** ~1 minute
 
 ---
 
 ## Required Operations (7 core operations)
 
 **Primitives:**
-1. **create_cylinder** - Create cylindrical shapes (bolt body)
+1. **create_cylinder** - Create cylindrical shapes
 
 **Sketches:**
 2. **create_sketch** - Start 2D sketch on plane
-3. **add_sketch_circle** - Add circles to sketch (washer profile/hole)
+3. **add_sketch_circle** - Add circles to sketch
 
 **Features:**
-4. **create_pad** - Extrude sketch to create solid (washer body)
-5. **create_pocket** - Cut into solid using sketch (washer hole)
-6. **create_thread** - Add ISO threads (bolt shaft)
+4. **create_pad** - Extrude sketch to create solid
+5. **create_pocket** - Cut into solid using sketch
+6. **create_thread** - Add ISO thread metadata (cosmetic)
 
-**Modifications:** ⭐ NEW
-7. **modify_object** - Change object properties (washer thickness, cylinder radius, etc.)
+**Modifications:**
+7. **modify_object** - Change object properties (dimensions, placement, etc.)
 
 **Query Tools (already implemented):**
 - **list_objects()** - Discover what exists in document
 - **get_object_details()** - Inspect geometry and properties
 
-**Removed from original plan:**
-- ~~CreateFillet~~ - Polish feature (post-MVP)
-- ~~CreateFusion~~ - Not needed (single cylinder bolt simpler than shaft+head fusion)
+**Operations Demonstrated via Modification (not implemented yet):**
+- Revolution (360° revolve) - seen in nyloc nut
+- Chamfer (edge beveling) - seen in nyloc nut
+- Fusion (boolean union) - seen in nyloc nut
+- Boolean Cut - seen in nyloc nut
 
 ---
 
-## Why These Operations?
+## Why These Demo Parts?
 
-**Chosen specifically to demonstrate:**
+**Pipe Flange:**
+✅ Looks 100% complete (no threads needed - flanges use bolts to connect)
+✅ Multi-feature complexity (concentric circles, bolt hole pattern, raised face)
+✅ Real ISO 7005 industrial standard ($50-500 depending on size/material)
+✅ Demonstrates full creation workflow from scratch
+✅ Shows pattern creation (8 bolt holes)
+✅ Professional appearance
 
-1. **Two workflows:** Primitive-based (bolt) + Sketch-based (washer)
-2. **Additive + Subtractive:** Pad (add material) + Pocket (remove material)
-3. **Creation + Editing:** Create operations + ModifyObject for property changes ⭐
-4. **Context discovery:** Query tools enable intelligent inspection
-5. **Real engineering:** ISO-standard parts (M10 bolt/washer), not abstract shapes
-6. **Intelligent modification:** Inspect → Analyze → Edit workflow (like human engineer)
+**Nyloc Nut:**
+✅ Demonstrates modification of complex pre-existing parts
+✅ Shows we can work with operations beyond current creation capabilities
+✅ Real-world use case (editing existing CAD library parts)
+✅ Proves extensibility of the system
+✅ Looks complete (no visual incompleteness)
 
-**Design principle:** Core workflows (create + edit) over polish features (fillet, fusion)
-
----
-
-## Demo Variants
-
-### Variant A: Simple (90 seconds)
-- Create bolt (primitives)
-- Inspect and add threads
-- Show in GUI
-
-### Variant B: Full (3 minutes)
-- Create bolt
-- Inspect and add threads
-- Create washer (sketches)
-- Verify compatibility
-- Show in GUI
-
-### Variant C: Engineering Focus (2 minutes)
-- Create bolt
-- Create washer
-- Claude verifies ISO standards compliance
-- Demonstrates engineering knowledge
+**Combined Demo Value:**
+✅ Shows both creation AND modification workflows
+✅ Both parts look professionally complete
+✅ No "half-finished" appearance (unlike bolt without visible threads)
+✅ Real industrial components with engineering value
+✅ Demonstrates system can grow beyond current operation set
 
 ---
 
@@ -209,53 +231,56 @@ Claude executes:
 
 After watching the demo, viewers should understand:
 
-✅ **adam-mcp creates real engineering parts** (not toy examples)
-✅ **Claude can inspect and understand** existing CAD geometry
-✅ **Claude can modify properties** based on inspection and requirements ⭐ NEW
+✅ **adam-mcp creates complete industrial parts** (pipe flange - no missing features)
+✅ **System works with complex pre-existing parts** (nyloc nut with advanced operations)
+✅ **Modification workflow extends beyond creation capabilities** (edit what we can't create yet)
+✅ **Professional output** (ISO standards, proper geometry, no visual incompleteness)
 ✅ **Structured operations provide validation** (type-safe, pre-checked)
-✅ **Context discovery enables intelligent workflows** (inspect → analyze → edit)
-✅ **Professional output** (ISO standards, proper geometry)
+✅ **Extensible architecture** (can edit advanced features before implementing creation tools)
 
 ---
 
 ## Script Notes
 
 **Opening (5 seconds):**
-"This is adam-mcp - an MCP server that lets Claude create, inspect, and edit CAD parts in FreeCAD. Watch how Claude creates an M10 bolt and washer, then modifies them based on requirements."
+"This is adam-mcp - an MCP server that lets Claude create and edit industrial CAD parts in FreeCAD. Watch how Claude creates a pipe flange from scratch and modifies a complex nyloc nut."
 
-**Part 1 narration (20 seconds):**
-"First, Claude creates a simple M10 bolt from a cylinder primitive - 10mm diameter, 40mm long."
+**Part 1 narration (90 seconds):**
+"First, Claude creates a 4-inch Class 150 pipe flange - a real industrial component used in piping systems. It builds up the geometry step by step: outer flange body with concentric circles, then cuts 8 bolt holes in a circular pattern, and adds a raised face for gasket sealing. This is a complete ISO 7005 standard part - no missing visual features."
 
-**Part 2 narration (20 seconds):**
-"Now Claude inspects the bolt it just created, understands it's the right diameter for M10 threads, and adds proper ISO metric threading. This isn't blind execution - Claude understands what it's modifying."
-
-**Part 3 narration (30 seconds):**
-"Next, Claude creates a matching washer using sketch-based operations - more complex than primitives. It sketches circles for the outer profile and center hole, extrudes the body, then cuts the hole."
-
-**Part 4 narration (30 seconds):**
-"Here's the key feature - Claude inspects both parts, verifies the washer fits the bolt, then modifies the washer thickness from 2mm to 4mm for heavy-duty use. This demonstrates true property editing, not just creation."
+**Part 2 narration (60 seconds):**
+"Now Claude opens a pre-existing nyloc nut that was created with advanced operations - Revolution, Chamfer, and Fusion - operations we don't have creation tools for yet. Claude inspects the part, understands its structure, then modifies properties like pocket depth and nylon ring position. This proves the system can work with complex parts beyond its current creation capabilities."
 
 **Closing (10 seconds):**
-"The result: professional engineering parts that meet ISO specifications, created through a conversation with Claude."
+"The result: professional industrial parts that are visually complete and meet real engineering standards. Creation and modification workflows working together."
 
 ---
 
 ## Technical Notes
 
 **File structure:**
-- Demo uses two documents: `bolt.FCStd` and `washer.FCStd`
+- Pipe flange: Created from scratch in `pipe_flange_4in_class150.FCStd`
+- Nyloc nut: Pre-existing `dev_projects/test_samples/nyloc_nut_m3.FCStd`
 - Working file system preserves state between operations
 - All operations validated before execution (Pydantic)
 
 **Geometry validation:**
 - Post-execution validation ensures valid shapes
-- Thread operations check cylindrical surfaces
-- Pocket operations verify sketch closure
+- Sketch operations check plane validity
+- Pocket operations verify through-all or specific depth
+- Modification operations validate property existence and type
 
 **Error handling:**
-- Clear messages: "Radius 15mm exceeds edge length 10mm. Maximum: 5mm"
+- Clear messages: "Property 'InvalidProp' not found on object 'Pocket'. Available properties: Length, Reversed, ..."
 - Pre-execution validation catches errors before FreeCAD execution
 - Graceful failures with recovery guidance
+
+**Why No Threads in Demo:**
+- Current thread tool only adds metadata (cosmetic)
+- Actual helical thread geometry requires Revolution + Sweep operations
+- Rather than show incomplete-looking parts, we chose parts that look 100% complete
+- Flanges naturally don't have threads (they use bolts)
+- Nyloc nut thread is internal and not primary visual feature
 
 ---
 
