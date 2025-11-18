@@ -4,7 +4,12 @@ from typing import Literal
 
 from pydantic import Field
 
-from adam_mcp.constants.dimensions import MAX_DIMENSION_MM, MIN_DIMENSION_MM
+from adam_mcp.constants.dimensions import (
+    MAX_DIMENSION_MM,
+    MAX_POLYGON_SIDES,
+    MIN_DIMENSION_MM,
+    MIN_POLYGON_SIDES,
+)
 from adam_mcp.constants.operations import MAX_DOCUMENT_NAME_LENGTH
 from adam_mcp.models.base import BaseOperation
 
@@ -108,9 +113,9 @@ class AddSketchPolygon(BaseOperation):
         description=f"Circumradius in mm (range: {MIN_DIMENSION_MM}-{MAX_DIMENSION_MM})",
     )
     sides: int = Field(
-        ge=3,
-        le=12,
-        description="Number of sides (3-12: triangle to dodecagon)",
+        ge=MIN_POLYGON_SIDES,
+        le=MAX_POLYGON_SIDES,
+        description=f"Number of sides ({MIN_POLYGON_SIDES}-{MAX_POLYGON_SIDES}: triangle to dodecagon)",
     )
 
 

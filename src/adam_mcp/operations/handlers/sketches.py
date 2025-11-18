@@ -18,6 +18,37 @@ else:
         FreeCAD = None  # type: ignore[assignment]
 
 
+def _get_and_validate_sketch(sketch_name: str, doc: Any) -> Any:
+    """
+    Get sketch object and validate it exists and is a valid sketch.
+
+    Args:
+        sketch_name: Name of sketch to retrieve
+        doc: Active FreeCAD document
+
+    Returns:
+        Sketch object
+
+    Raises:
+        ValueError: If sketch doesn't exist or is not a Sketcher object
+    """
+    # Check if sketch exists
+    sketch = doc.getObject(sketch_name)
+    if sketch is None:
+        raise ValueError(
+            f"Sketch '{sketch_name}' not found. " f"Use list_objects() to see available objects."
+        )
+
+    # Verify it's a sketch object
+    if not hasattr(sketch, "addGeometry"):
+        raise ValueError(
+            f"Object '{sketch_name}' is not a sketch (type: {sketch.TypeId}). "
+            f"Use create_sketch() to create a sketch first."
+        )
+
+    return sketch
+
+
 def execute_create_sketch(operation: CreateSketch, doc: Any) -> str:
     """
     Execute CreateSketch operation.
@@ -87,20 +118,8 @@ def execute_add_sketch_circle(operation: AddSketchCircle, doc: Any) -> str:
         ValueError: If sketch doesn't exist or is not a Sketcher object
         RuntimeError: If FreeCAD API call fails
     """
-    # Check if sketch exists
-    sketch = doc.getObject(operation.sketch_name)
-    if sketch is None:
-        raise ValueError(
-            f"Sketch '{operation.sketch_name}' not found. "
-            f"Use list_objects() to see available objects."
-        )
-
-    # Verify it's a sketch object
-    if not hasattr(sketch, "addGeometry"):
-        raise ValueError(
-            f"Object '{operation.sketch_name}' is not a sketch (type: {sketch.TypeId}). "
-            f"Use create_sketch() to create a sketch first."
-        )
+    # Get and validate sketch
+    sketch = _get_and_validate_sketch(operation.sketch_name, doc)
 
     # Import Part module for circle geometry
     try:
@@ -142,20 +161,8 @@ def execute_add_sketch_polygon(operation: AddSketchPolygon, doc: Any) -> str:
         ValueError: If sketch doesn't exist or is not a Sketcher object
         RuntimeError: If FreeCAD API call fails
     """
-    # Check if sketch exists
-    sketch = doc.getObject(operation.sketch_name)
-    if sketch is None:
-        raise ValueError(
-            f"Sketch '{operation.sketch_name}' not found. "
-            f"Use list_objects() to see available objects."
-        )
-
-    # Verify it's a sketch object
-    if not hasattr(sketch, "addGeometry"):
-        raise ValueError(
-            f"Object '{operation.sketch_name}' is not a sketch (type: {sketch.TypeId}). "
-            f"Use create_sketch() to create a sketch first."
-        )
+    # Get and validate sketch
+    sketch = _get_and_validate_sketch(operation.sketch_name, doc)
 
     # Import Part module for polygon geometry
     try:

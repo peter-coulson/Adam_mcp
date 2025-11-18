@@ -12,18 +12,16 @@ from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from adam_mcp.constants.operations import AUTO_SAVE_INTERVAL, WORK_DIR_ENV_VAR, WORK_FILE_SUFFIX
+from adam_mcp.constants.operations import (
+    AUTO_SAVE_INTERVAL,
+    WORK_DIR_ENV_VAR,
+    WORK_FILE_SUFFIX,
+)
 
 T = TypeVar("T")
 
 if TYPE_CHECKING:
-    import FreeCAD
-else:
-    # Import FreeCAD at runtime after environment setup
-    try:
-        import FreeCAD
-    except ImportError:
-        FreeCAD = None  # type: ignore[assignment]
+    pass
 
 
 # ============================================================================
@@ -80,7 +78,9 @@ def _is_valid_freecad_file(file_path: str) -> bool:
 
     This is used to detect corrupted .work files before attempting to use them.
     """
-    if not FreeCAD:
+    try:
+        import FreeCAD
+    except ImportError:
         return False
 
     try:
@@ -173,7 +173,7 @@ def setup_working_file(main_file_path: str) -> str:
     # Resume editing if work file already exists AND is valid
     if Path(work_file_path).exists():
         # Validate the work file by attempting to open it with FreeCAD
-        if FreeCAD and _is_valid_freecad_file(work_file_path):
+        if _is_valid_freecad_file(work_file_path):
             return work_file_path
         # Work file is corrupted - delete it and recreate from main
         Path(work_file_path).unlink(missing_ok=True)
@@ -195,6 +195,7 @@ def auto_save_working_file() -> None:
     Auto-save working file (called after operations)
 
     Saves the active document to the working file path.
+
     Silent fail if no active document or no working file configured.
 
     Note: Temporarily disables FreeCAD backup file creation during auto-save
@@ -202,12 +203,18 @@ def auto_save_working_file() -> None:
     """
     global _active_work_file_path
 
-    if FreeCAD is None:
+    try:
+        import FreeCAD
+    except ImportError:
+        print("Warning: Auto-save skipped - FreeCAD not available")
         return
 
     doc = FreeCAD.ActiveDocument
     if doc and _active_work_file_path:
         try:
+            # Recompute document to ensure all changes are processed
+            doc.recompute()
+
             # Temporarily disable backup file creation for auto-save
             # to prevent accumulation of timestamped .FCBak files
             param_group = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document")
@@ -216,7 +223,11 @@ def auto_save_working_file() -> None:
             try:
                 # Disable backups during auto-save
                 param_group.SetBool("CreateBackupFiles", False)
-                doc.save()
+
+                # Use saveAs to ensure we're saving to the correct path
+                # (doc.save() might not work if FileName isn't properly set)
+                doc.saveAs(_active_work_file_path)
+                print(f"Auto-save successful: {_active_work_file_path}")
             finally:
                 # Restore original backup setting
                 param_group.SetBool("CreateBackupFiles", original_backup_setting)
@@ -224,6 +235,10 @@ def auto_save_working_file() -> None:
         except (RuntimeError, OSError) as e:
             # Log but don't crash - auto-save is best-effort
             print(f"Warning: Auto-save failed: {e}")
+    else:
+        print(
+            f"Warning: Auto-save skipped - doc={doc is not None}, work_path={_active_work_file_path}"
+        )
 
 
 def increment_operation_counter() -> None:

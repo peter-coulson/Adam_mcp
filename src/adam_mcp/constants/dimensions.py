@@ -15,3 +15,10 @@ MAX_FILLET_RADIUS_MM = 1000.0
 
 MIN_ANGLE_DEGREES = -360.0
 MAX_ANGLE_DEGREES = 360.0
+
+# ============================================================================
+# Polygon Constraints
+# ============================================================================
+
+MIN_POLYGON_SIDES = 3  # Triangle (minimum closed polygon)
+MAX_POLYGON_SIDES = 12  # Dodecagon (MVP limit for performance)

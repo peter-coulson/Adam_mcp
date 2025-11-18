@@ -4,7 +4,6 @@ Document management tools for adam-mcp
 Tools for creating, opening, and managing FreeCAD documents.
 """
 
-import os
 import platform
 import shutil
 import subprocess  # nosec B404 - Required for opening FreeCAD GUI on macOS/Linux
@@ -21,7 +20,9 @@ from adam_mcp.constants.messages import (
     SUCCESS_CHANGES_COMMITTED,
     SUCCESS_CHANGES_ROLLED_BACK,
 )
-from adam_mcp.constants.operations import VALIDATE_BEFORE_COMMIT
+from adam_mcp.constants.operations import (
+    VALIDATE_BEFORE_COMMIT,
+)
 from adam_mcp.core.working_files import (
     get_active_main_file_path,
     get_active_work_file_path,
@@ -321,13 +322,10 @@ def get_document_info() -> DocumentInfo:
 
 def open_in_freecad_gui() -> str:
     """
-    Open the working file in FreeCAD GUI for live preview.
+    Open the working file in FreeCAD GUI for viewing.
 
-    Opens the active .work file in the FreeCAD desktop application so you can see
-    your changes in real-time as the MCP server modifies the file. The GUI will
-    show the current state of the working file (auto-saved every 5 operations).
-
-    To see updates, you may need to reload the document in the FreeCAD GUI (File > Reload).
+    Opens the active .work file in the FreeCAD desktop application. The file is auto-saved
+    after each operation. To see updates, manually reload in FreeCAD (File → Reload).
 
     Returns:
         Success message with path to working file
@@ -347,18 +345,16 @@ def open_in_freecad_gui() -> str:
         system = platform.system()
 
         if system == "Darwin":  # macOS
-            # Use macOS 'open' command - standard way to open files with default app
             subprocess.Popen(["open", "-a", "FreeCAD", work_file_path])  # nosec B603 B607
         elif system == "Linux":
-            # Use freecad executable from PATH
             subprocess.Popen(["freecad", work_file_path])  # nosec B603 B607
         elif system == "Windows":
-            # Use os.startfile - Windows-native way to open files (avoids shell=True)
-            os.startfile(work_file_path)  # type: ignore[attr-defined]  # nosec B606 Windows-only
+            freecad_exe = "FreeCAD.exe"
+            subprocess.Popen([freecad_exe, work_file_path])  # nosec B603 B607
         else:
             raise RuntimeError(f"Unsupported platform: {system}")
 
-        return f"Opened working file in FreeCAD GUI: {work_file_path}"
+        return f"Opened working file in FreeCAD GUI: {work_file_path}\nUse File → Reload to see updates after operations."
 
     except FileNotFoundError as e:
         raise RuntimeError(
