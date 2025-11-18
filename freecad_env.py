@@ -3,56 +3,239 @@ FreeCAD Environment Setup
 Configure Python path and environment for FreeCAD integration
 """
 
-import sys
 import os
+import platform
+import sys
+from pathlib import Path
+from typing import NamedTuple
 
-# FreeCAD paths
-FREECAD_LIB = "/Applications/FreeCAD.app/Contents/Resources/lib"
-FREECAD_MOD = "/Applications/FreeCAD.app/Contents/Resources/Mod"
-FREECAD_EXT = "/Applications/FreeCAD.app/Contents/Resources/Ext"
-FREECAD_FRAMEWORKS = "/Applications/FreeCAD.app/Contents/Frameworks"
+# ============================================================================
+# Constants
+# ============================================================================
 
-def setup_freecad_environment():
+# macOS paths
+MACOS_APP_PATH = "/Applications/FreeCAD.app/Contents"
+MACOS_RESOURCES = f"{MACOS_APP_PATH}/Resources"
+MACOS_LIB = f"{MACOS_RESOURCES}/lib"
+MACOS_MOD = f"{MACOS_RESOURCES}/Mod"
+MACOS_EXT = f"{MACOS_RESOURCES}/Ext"
+MACOS_FRAMEWORKS = f"{MACOS_APP_PATH}/Frameworks"
+
+# Linux paths (common distributions)
+LINUX_LIB = "/usr/lib/freecad/lib"
+LINUX_MOD = "/usr/lib/freecad/Mod"
+LINUX_EXT = "/usr/lib/freecad/Ext"
+
+# Windows paths (common installation)
+WINDOWS_PROGRAM_FILES = "C:/Program Files/FreeCAD"
+WINDOWS_LIB = f"{WINDOWS_PROGRAM_FILES}/bin"
+WINDOWS_MOD = f"{WINDOWS_PROGRAM_FILES}/Mod"
+WINDOWS_EXT = f"{WINDOWS_PROGRAM_FILES}/Ext"
+
+# Environment variable names
+ENV_VAR_FREECAD_PATH = "FREECAD_PATH"
+ENV_VAR_MACOS_LIBRARY = "DYLD_LIBRARY_PATH"
+ENV_VAR_MACOS_FRAMEWORK = "DYLD_FRAMEWORK_PATH"
+ENV_VAR_LINUX_LIBRARY = "LD_LIBRARY_PATH"
+ENV_VAR_WINDOWS_PATH = "PATH"
+
+# Messages
+MSG_SUCCESS = "✓ FreeCAD environment configured"
+MSG_LIBRARY_PATH = "  - Library path: {}"
+MSG_MODULES_PATH = "  - Modules path: {}"
+MSG_EXTENSIONS_PATH = "  - Extensions path: {}"
+MSG_PLATFORM = "  - Platform: {}"
+MSG_ENV_OVERRIDE = "  - Using FREECAD_PATH override: {}"
+
+ERROR_PATH_NOT_FOUND = "FreeCAD installation not found at expected path: {}"
+ERROR_PLATFORM_UNSUPPORTED = "Unsupported platform: {}"
+ERROR_INSTALL_INSTRUCTIONS = """
+FreeCAD not found. Please install FreeCAD:
+
+macOS:
+  brew install freecad
+
+Linux (Ubuntu/Debian):
+  sudo apt-get install freecad
+
+Linux (Fedora):
+  sudo dnf install freecad
+
+Windows:
+  Download from https://www.freecad.org/downloads.php
+
+Or set FREECAD_PATH environment variable to custom installation location.
+"""
+
+
+# ============================================================================
+# Data Structures
+# ============================================================================
+
+
+class FreeCADPaths(NamedTuple):
+    """FreeCAD installation paths"""
+
+    lib: str
+    mod: str
+    ext: str
+    frameworks: str | None = None  # macOS only
+
+
+# ============================================================================
+# Platform Detection
+# ============================================================================
+
+
+def get_platform_paths() -> FreeCADPaths:
     """
-    Explicitly configure Python environment for FreeCAD
-    Call this before importing FreeCAD modules
+    Detect platform and return appropriate FreeCAD paths
+
+    Returns:
+        FreeCADPaths with platform-specific paths
+
+    Raises:
+        RuntimeError: If platform is unsupported
     """
+    system = platform.system()
+
+    # Check for environment variable override first
+    if env_path := os.environ.get(ENV_VAR_FREECAD_PATH):
+        print(MSG_ENV_OVERRIDE.format(env_path))
+        return FreeCADPaths(
+            lib=f"{env_path}/lib",
+            mod=f"{env_path}/Mod",
+            ext=f"{env_path}/Ext",
+            frameworks=f"{env_path}/Frameworks" if system == "Darwin" else None,
+        )
+
+    # Platform-specific defaults
+    if system == "Darwin":  # macOS
+        return FreeCADPaths(
+            lib=MACOS_LIB, mod=MACOS_MOD, ext=MACOS_EXT, frameworks=MACOS_FRAMEWORKS
+        )
+    if system == "Linux":
+        return FreeCADPaths(lib=LINUX_LIB, mod=LINUX_MOD, ext=LINUX_EXT)
+    if system == "Windows":
+        return FreeCADPaths(lib=WINDOWS_LIB, mod=WINDOWS_MOD, ext=WINDOWS_EXT)
+
+    raise RuntimeError(ERROR_PLATFORM_UNSUPPORTED.format(system))
+
+
+# ============================================================================
+# Path Validation
+# ============================================================================
+
+
+def validate_paths(paths: FreeCADPaths) -> None:
+    """
+    Validate that FreeCAD paths exist
+
+    Args:
+        paths: FreeCADPaths to validate
+
+    Raises:
+        FileNotFoundError: If required paths don't exist
+    """
+    # Check library path (most critical)
+    if not Path(paths.lib).exists():
+        raise FileNotFoundError(ERROR_PATH_NOT_FOUND.format(paths.lib) + ERROR_INSTALL_INSTRUCTIONS)
+
+    # Warn if optional paths missing (don't fail)
+    if not Path(paths.mod).exists():
+        print(f"Warning: Mod path not found: {paths.mod}")
+    if not Path(paths.ext).exists():
+        print(f"Warning: Ext path not found: {paths.ext}")
+
+
+# ============================================================================
+# Environment Setup
+# ============================================================================
+
+
+def setup_freecad_environment() -> None:
+    """
+    Configure Python environment for FreeCAD integration
+
+    Call this before importing FreeCAD modules.
+
+    Raises:
+        RuntimeError: If platform is unsupported
+        FileNotFoundError: If FreeCAD installation not found
+    """
+    # Detect platform and get paths
+    paths = get_platform_paths()
+    system = platform.system()
+
+    # Validate paths exist
+    validate_paths(paths)
+
     # Add FreeCAD to Python path
-    paths_to_add = [FREECAD_LIB, FREECAD_MOD, FREECAD_EXT]
+    paths_to_add = [paths.lib, paths.mod, paths.ext]
     for path in paths_to_add:
-        if path not in sys.path:
+        if Path(path).exists() and path not in sys.path:
             sys.path.insert(0, path)
 
-    # Set environment variables for dynamic library loading
-    os.environ.setdefault("DYLD_LIBRARY_PATH", FREECAD_LIB)
-    os.environ.setdefault("DYLD_FRAMEWORK_PATH", FREECAD_FRAMEWORKS)
+    # Set platform-specific environment variables for dynamic library loading
+    if system == "Darwin":  # macOS
+        os.environ[ENV_VAR_MACOS_LIBRARY] = paths.lib
+        if paths.frameworks:
+            os.environ[ENV_VAR_MACOS_FRAMEWORK] = paths.frameworks
+    elif system == "Linux":
+        # Append to existing LD_LIBRARY_PATH if present
+        existing = os.environ.get(ENV_VAR_LINUX_LIBRARY, "")
+        os.environ[ENV_VAR_LINUX_LIBRARY] = f"{paths.lib}:{existing}" if existing else paths.lib
+    elif system == "Windows":
+        # Append to PATH
+        existing = os.environ.get(ENV_VAR_WINDOWS_PATH, "")
+        os.environ[ENV_VAR_WINDOWS_PATH] = f"{paths.lib};{existing}" if existing else paths.lib
 
-    print("✓ FreeCAD environment configured")
-    print(f"  - Library path: {FREECAD_LIB}")
-    print(f"  - Modules path: {FREECAD_MOD}")
-    print(f"  - Extensions path: {FREECAD_EXT}")
+    # Success message
+    print(MSG_SUCCESS)
+    print(MSG_PLATFORM.format(system))
+    print(MSG_LIBRARY_PATH.format(paths.lib))
+    print(MSG_MODULES_PATH.format(paths.mod))
+    print(MSG_EXTENSIONS_PATH.format(paths.ext))
 
+
+# ============================================================================
+# Test Block
+# ============================================================================
 
 if __name__ == "__main__":
-    setup_freecad_environment()
+    # Constants for test
+    TEST_DOC_NAME = "Test"
+    TEST_BOX_SIZE_MM = 10.0
+    MSG_IMPORT_SUCCESS = "\n✓ FreeCAD imported successfully"
+    MSG_VERSION = "  - Version: {}"
+    MSG_BUILD = "  - Build: {}"
+    MSG_TEST_BOX_CREATED = "\n✓ Created test box"
+    MSG_VOLUME = "  - Volume: {} mm³"
+    MSG_TEST_PASSED = "\n✓ Setup test passed!"
+    ERROR_IMPORT_FAILED = "\n✗ Failed to import FreeCAD: {}"
 
-    # Test FreeCAD import
     try:
+        # Setup environment
+        setup_freecad_environment()
+
+        # Test FreeCAD import
         import FreeCAD
         import Part
-        print(f"\n✓ FreeCAD imported successfully")
-        print(f"  Version: {'.'.join(FreeCAD.Version()[:3])}")
-        print(f"  Build: {FreeCAD.Version()[3]}")
+
+        print(MSG_IMPORT_SUCCESS)
+        print(MSG_VERSION.format(".".join(FreeCAD.Version()[:3])))
+        print(MSG_BUILD.format(FreeCAD.Version()[3]))
 
         # Create a simple test object
-        doc = FreeCAD.newDocument("Test")
-        box = Part.makeBox(10, 10, 10)
-        print(f"\n✓ Created test box")
-        print(f"  Volume: {box.Volume}")
+        doc = FreeCAD.newDocument(TEST_DOC_NAME)
+        box = Part.makeBox(TEST_BOX_SIZE_MM, TEST_BOX_SIZE_MM, TEST_BOX_SIZE_MM)
 
-        FreeCAD.closeDocument("Test")
-        print("\n✓ Setup test passed!")
+        print(MSG_TEST_BOX_CREATED)
+        print(MSG_VOLUME.format(box.Volume))
 
-    except ImportError as e:
-        print(f"\n✗ Failed to import FreeCAD: {e}")
+        FreeCAD.closeDocument(TEST_DOC_NAME)
+        print(MSG_TEST_PASSED)
+
+    except (ImportError, FileNotFoundError, RuntimeError) as e:
+        print(ERROR_IMPORT_FAILED.format(e))
         sys.exit(1)

@@ -22,41 +22,61 @@ FreeCAD MCP Server - A Model Context Protocol server for programmatic CAD operat
 brew install freecad
 ```
 
-**Linux:**
+**Linux (Ubuntu/Debian):**
 ```bash
-sudo apt-get install freecad  # Ubuntu/Debian
-# or equivalent for your distribution
+sudo apt-get install freecad
 ```
+
+**Linux (Fedora):**
+```bash
+sudo dnf install freecad
+```
+
+**Windows:**
+Download from [https://www.freecad.org/downloads.php](https://www.freecad.org/downloads.php)
 
 ### 2. Clone and Setup Python Environment
 
 ```bash
 git clone <your-repo-url>
 cd adam_mcp
-uv sync
+uv sync --extra dev  # Installs both runtime and dev dependencies
 ```
 
-### 3. Activate Virtual Environment
-
-```bash
-source .venv/bin/activate
-```
+The virtual environment will automatically activate when you enter the directory (via direnv).
 
 ## How It Works
 
 The project uses an **explicit environment configuration** approach:
 
-- **freecad_env.py**: Explicit setup script that configures FreeCAD paths
+- **freecad_env.py**: Platform-aware setup script that configures FreeCAD paths
+- Automatically detects macOS, Linux, and Windows
 - Clean, visible configuration (no hidden site-packages modifications)
 - Call `setup_freecad_environment()` before importing FreeCAD
+
+### Custom FreeCAD Installation
+
+If FreeCAD is installed in a non-standard location, set the `FREECAD_PATH` environment variable:
+
+```bash
+export FREECAD_PATH="/path/to/your/freecad/installation"
+# Then run your script
+python freecad_env.py
+```
+
+Or add it to your `.env` file:
+```
+FREECAD_PATH=/path/to/your/freecad/installation
+```
 
 ## Testing the Setup
 
 Run the environment setup script to verify FreeCAD integration:
 
 ```bash
-source .venv/bin/activate
 python freecad_env.py
+# or with UV
+uv run python freecad_env.py
 ```
 
 You should see:
@@ -102,3 +122,69 @@ adam_mcp/
 - **fastmcp >= 1.0.0** - MCP server framework
 - **pydantic >= 2.0.0** - JSON validation and data models
 - **python-dotenv >= 1.0.0** - Environment variable management
+
+## Development
+
+### Prerequisites
+
+- **UV** - Fast Python package manager (`pip install uv` or `brew install uv`)
+- **direnv** - Auto-activation of virtual environment (installed automatically during setup)
+
+### Development Workflow
+
+1. **Auto-activation**: The virtual environment activates automatically when entering the project directory
+   - Powered by `direnv` + `.envrc` configuration
+   - No need to run `source .venv/bin/activate`
+
+2. **Dependency management**: Use UV for all package operations
+   ```bash
+   uv sync              # Sync dependencies from uv.lock
+   uv sync --extra dev  # Include dev dependencies (linters, formatters)
+   uv pip install pkg   # Add a new package
+   ```
+
+3. **Code quality**: Pre-commit hooks run automatically on `git commit`
+   ```bash
+   pre-commit run --all-files  # Run manually on all files
+   ```
+
+### Code Quality Tools
+
+**Configured and enforced via pre-commit hooks:**
+
+- **ruff** - Fast linting (replaces flake8, isort, pyupgrade)
+  - Checks: pycodestyle, pyflakes, naming, bugbear, simplify, etc.
+  - Auto-fixes many issues
+
+- **black** - Code formatting (100 char lines)
+
+- **mypy** - Static type checking (strict mode)
+  - All functions must have type hints
+  - Configured in `pyproject.toml` with strict settings
+
+- **bandit** - Security vulnerability scanning
+
+**Run tools manually:**
+```bash
+ruff check .          # Lint code
+ruff check --fix .    # Lint and auto-fix
+black .               # Format code
+mypy src/ freecad_env.py  # Type check
+```
+
+### Configuration Files
+
+- **pyproject.toml** - All tool configurations (black, ruff, mypy, bandit)
+- **.pre-commit-config.yaml** - Pre-commit hook definitions
+- **uv.lock** - Lockfile for reproducible builds (committed to git)
+- **.python-version** - Python version for this project (3.11)
+- **.envrc** - Direnv configuration for auto-activation
+
+### Quality Standards
+
+Per `CLAUDE.md`, all code must follow:
+- ✓ Type hints on all functions
+- ✓ No magic numbers or duplicate strings
+- ✓ DRY principle - extract constants/config
+- ✓ Error messages explain what went wrong AND how to fix it
+- ✓ Simplicity over cleverness

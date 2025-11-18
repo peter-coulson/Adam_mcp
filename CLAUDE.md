@@ -60,6 +60,11 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 - Return object references for use in subsequent calls
 - Progressive enhancement: core demo tools first, extras later
 
+## Critical Workflow Rules
+
+- **Always run pre-commit** - `uv run pre-commit run --all-files` after writing code
+- **Never commit** - Commits are ALWAYS managed by the user (no exceptions)
+
 ## Quality Checklist (before marking work complete)
 
 1. ✓ No magic numbers or duplicate strings? (extract to constants)
