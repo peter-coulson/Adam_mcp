@@ -69,3 +69,10 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 5. ✓ Tool docstrings clear for Claude to understand?
 6. ✓ Each module has one clear purpose?
 7. ✓ New validation logic extracted if used more than once?
+
+## Documentation
+
+**`CLAUDE.md`** - This file (project principles and standards)
+**`context/`** - Strategic decisions and architecture rationale
+  - `README.md` - Context system governance (size limits, content principles)
+  - `DECISIONS.md` - Key architectural choices (why single-file? why FastMCP?)
