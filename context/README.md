@@ -15,7 +15,8 @@ Document **WHY** decisions were made and **WHERE** to find implementations, not 
 ```
 context/
 ├── README.md       # This file (entry point + governance)
-└── DECISIONS.md    # Key architectural and technical choices
+├── DECISIONS.md    # Technical and architectural choices
+└── WORKFLOW.md     # User experience and workflow architecture
 ```
 
 ---
@@ -26,15 +27,16 @@ context/
 - **Architectural decisions** - Why single-file server? Why FastMCP over mcp-python?
 - **Design rationale** - Why direct FreeCAD imports vs socket layer?
 - **Technical choices** - Why specific units (mm vs cm)? Why these specific tools?
+- **User experience architecture** - How users interact with the system, mental models, workflow patterns
 - **Non-obvious constraints** - FreeCAD API limitations, MCP protocol considerations
 - **Extension patterns** - How to add new tools without violating principles
 
 ### ❌ Don't Document:
 - Tool parameter lists (see code + MCP schema)
 - FreeCAD API reference (see official docs)
-- Step-by-step tutorials (code is self-documenting)
+- Implementation tutorials (code is self-documenting - but system design explanations allowed)
 - Complete function implementations (show pattern only, max 10 lines)
-- Alternative approaches tried and rejected (keep only final decision + rationale)
+- Extensive lists of rejected alternatives (keep only final decision + brief rationale)
 
 ---
 
@@ -46,11 +48,12 @@ context/
 
 | File | Target | Hard Limit |
 |------|--------|------------|
-| README.md | 50 lines | 100 lines |
-| DECISIONS.md | 80-120 lines | 150 lines |
-| **TOTAL** | **~150 lines** | **250 lines** |
+| README.md | 80 lines | 120 lines |
+| DECISIONS.md | 100 lines | 150 lines |
+| WORKFLOW.md | 150 lines | 250 lines |
+| **TOTAL** | **~350 lines** | **500 lines** |
 
-**Rationale:** Context should be scannable in <2 minutes. At 8-hour project scale, more documentation than this indicates over-documentation or content that belongs in code.
+**Rationale:** Context should be comprehensive but concise. Budget accounts for technical decisions, workflow architecture, and governance. Exceeding limits indicates bloat or content that belongs in code/comments.
 
 ### Content Principles
 

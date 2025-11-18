@@ -13,7 +13,7 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 ```
 src/adam_mcp/
   ├── __init__.py           # Package metadata
-  ├── server.py             # Entry point + tool registration (~170 LOC)
+  ├── server.py             # Entry point + tool registration
   ├── constants.py          # All constants (dimensions, messages, paths)
   ├── models.py             # Pydantic models for type-safe data
   ├── utils.py              # Core utilities (validation, error formatting)
@@ -25,13 +25,7 @@ src/adam_mcp/
       # Future: sketch.py, extrude.py, fillet.py
 ```
 
-**Module Responsibilities:**
-- `server.py` - FastMCP initialization and tool registration only
-- `constants.py` - Single source of truth for all magic numbers and strings
-- `models.py` - Pydantic response/request models
-- `utils.py` - Reusable helpers (get_active_document, validate_dimension, etc.)
-- `working_files.py` - File management system with auto-save
-- `tools/` - Tool implementations organized by category
+**Module Responsibilities:** See context/DECISIONS.md for detailed architecture
 
 ## Software Principles
 
@@ -47,7 +41,7 @@ src/adam_mcp/
 - **Direct API integration** - No socket layers, direct FreeCAD imports (simpler than reference implementation)
 - **Tool-centric design** - Each tool is self-contained with validation + execution logic
 - **Separation of concerns** - MCP tool definitions separate from FreeCAD operations
-- **Modular structure** - server.py is a slim entry point (~170 LOC). Infrastructure extracted into focused modules
+- **Modular structure** - server.py is a slim entry point. Infrastructure extracted into focused modules
 
 ### Implementation Guidance
 
@@ -109,4 +103,5 @@ src/adam_mcp/
 **`CLAUDE.md`** - This file (project principles and standards)
 **`context/`** - Strategic decisions and architecture rationale
   - `README.md` - Context system governance (size limits, content principles)
-  - `DECISIONS.md` - Key architectural choices (why single-file? why FastMCP?)
+  - `DECISIONS.md` - Technical and architectural choices
+  - `WORKFLOW.md` - User experience and workflow architecture

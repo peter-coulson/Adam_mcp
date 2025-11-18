@@ -8,18 +8,9 @@ Key technical choices and rationale for adam-mcp.
 
 ### Modular Architecture
 
-**Decision:** Extract infrastructure into focused modules when boundaries become clear. Keep `server.py` as slim entry point (~170 LOC).
+**Decision:** Extract infrastructure into focused modules when boundaries become clear. Keep `server.py` as slim entry point.
 
-**Current structure:**
-- ✅ `server.py` - Entry point + tool registration only
-- ✅ `constants.py` - Single source of truth for all constants
-- ✅ `models.py` - Pydantic models for type-safe data
-- ✅ `utils.py` - Core reusable utilities (validation, error formatting)
-- ✅ `working_files.py` - Working file infrastructure (auto-save, commit/rollback)
-- ✅ `freecad_env.py` - Environment setup (platform-specific)
-- ✅ `tools/` - Tool implementations organized by category
-
-**Evolution:** Started with single-file server.py (609 LOC). As boundaries became clear and LOC exceeded 500, extracted into focused modules. Each module has one clear responsibility.
+**Evolution:** Started with single-file server.py (609 LOC). When LOC exceeded 500 and boundaries became clear, extracted into focused modules: constants, models, utils, working_files, freecad_env, tools/. Each module has one clear responsibility.
 
 **Rationale:** Extreme modularity enables easier testing, clearer organization, and better scalability as more tools are added. server.py remains simple and focused on MCP tool registration.
 
@@ -56,15 +47,11 @@ Key technical choices and rationale for adam-mcp.
 
 ### Working File System
 
-**Decision:** Implemented working file system with auto-save, commit/rollback
+**Decision:** Two-file system (main + work) with explicit commit/rollback workflow
 
-**Implementation:**
-- Main file: User's actual .FCStd file (only modified on commit)
-- Working file: .work copy for safe editing (auto-saved every 5 operations)
-- Commit: Validates geometry before updating main file
-- Rollback: Discards working changes, resets from main file
+**Rationale:** Enables safe editing with crash protection, prevents corrupted geometry from being saved, supports undo workflow, gives users control over what becomes "real"
 
-**Rationale:** Enables safe editing with crash protection, prevents corrupted geometry from being saved, supports undo workflow
+**Details:** See context/WORKFLOW.md for complete workflow architecture
 
 ---
 
@@ -91,13 +78,7 @@ Key technical choices and rationale for adam-mcp.
 
 **Trigger:** server.py exceeded 609 LOC, boundaries between concerns became clear
 
-**Actions:**
-- Extracted all constants to `constants.py` (80+ constants)
-- Extracted Pydantic models to `models.py`
-- Extracted utilities to `utils.py` (validation, error formatting, document helpers)
-- Extracted working file infrastructure to `working_files.py` (160 LOC)
-- Moved tool implementations to `tools/document.py`
-- Slimmed `server.py` to ~170 LOC (just registration)
+**Actions:** Extracted constants, models, utils, working_files, tool implementations into focused modules. Slimmed server.py to just MCP registration.
 
 **Result:** Clear separation of concerns, easier to add new tools, better testability
 
