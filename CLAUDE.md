@@ -8,11 +8,14 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 **Success:** "Create M10×40 hex bolt" → Accurate ISO bolt in seconds
 **Tech Stack:** Python 3.10+, FreeCAD, FastMCP, Pydantic
 
-**Tool Philosophy:** 4 tools - discovery + structured operations (no Python fallback)
-1. `list_objects()` - Lightweight overview (implemented)
-2. `get_object_details(names)` - Rich context on-demand (implemented)
-3. `list_available_operations(category)` - Discover operations by category (planned)
-4. `execute_standard_operation(operation)` - Structured JSON operations with validation (planned)
+**Tool Philosophy:** Operation-specific tools with flat parameters (MCP-compatible, no Python fallback)
+1. `list_objects()` - Lightweight overview (✅ implemented)
+2. `get_object_details(names)` - Rich context on-demand (✅ implemented)
+3. Operation tools (one per operation, flat parameters):
+   - `create_cylinder_tool()`, `create_pad_tool()`, `create_fillet_tool()`, etc.
+   - Each tool has simple, flat parameters (no nested objects)
+   - Natural discovery via tool list (no separate discovery tool needed)
+   - ~17 tools for MVP, ~32 tools for full feature set
 
 **Workflow Model:** Sequential single-object operations (matches CAD's dependency chain)
 
@@ -134,12 +137,15 @@ src/adam_mcp/
 - Use named constants for dimensions, tolerances, messages, paths
 
 **Tool Design:**
-- Write focused, single-object operations (not batch scripts)
-- Sequential workflow (inspect → operate → inspect → operate)
-- Fetch details on-demand (token efficient)
-- Structured JSON operations with rich validation and error messages
-- Tool implementations in `tools/` directory (document.py, query.py, discovery.py, execution.py)
-- FastMCP registration only in `server.py`
+- **Flat, operation-specific tools** - One tool per operation (create_cylinder, create_pad, etc.)
+- **Simple parameters** - All params flat (no nested objects) for MCP compatibility
+- **Natural discovery** - Tool list provides discovery (no separate discovery tool)
+- **Sequential workflow** - Inspect → operate → inspect → operate (one object at a time)
+- **3-layer validation** - Pydantic (types/ranges) → Semantic (existence/constraints) → Geometry (valid shapes)
+- **Clear separation** - Create operations vs Modify operations (separate tools)
+- Tool implementations in `tools/execution.py` (one function per operation)
+- FastMCP registration only in `server.py` (one @mcp.tool() per operation)
+- Scales well (~17 MVP tools, ~32 full feature set)
 
 ## Critical Workflow Rules
 

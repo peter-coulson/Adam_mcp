@@ -20,6 +20,7 @@ from adam_mcp.models.responses import (
     HealthCheckResponse,
     ObjectDetailsResponse,
     ObjectListResponse,
+    OperationResult,
     ProjectsList,
 )
 
@@ -41,6 +42,9 @@ from adam_mcp.tools.document import (  # noqa: E402
     open_document,
     open_in_freecad_gui,
     rollback_working_changes,
+)
+from adam_mcp.tools.execution import (  # noqa: E402
+    create_cylinder,
 )
 from adam_mcp.tools.query import (  # noqa: E402
     get_object_details,
@@ -255,6 +259,64 @@ def get_object_details_tool(names: list[str]) -> ObjectDetailsResponse:
         RuntimeError: If no active document exists
     """
     return get_object_details(names)
+
+
+@mcp.tool()
+def create_cylinder_tool(
+    name: str,
+    radius: float,
+    height: float,
+    description: str,
+    position: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    angle: float = 360.0,
+) -> OperationResult:
+    """
+    Create a cylindrical primitive.
+
+    Creates a cylinder with specified dimensions. All parameters are validated
+    before execution using 3-layer validation:
+    1. Pydantic validation (types, ranges)
+    2. Semantic validation (duplicate names, object existence)
+    3. Geometry validation (valid FreeCAD shape)
+
+    Args:
+        name: Unique object name (max 100 chars). Must not already exist in document.
+        radius: Radius in mm (range: 0.1 - 10000)
+        height: Height in mm (range: 0.1 - 10000)
+        description: Human-readable description of what you're creating
+        position: Position (x, y, z) in mm. Defaults to origin (0, 0, 0)
+        angle: Sweep angle in degrees (0-360). Defaults to 360 for full cylinder.
+               Use angle < 360 for partial cylinder (e.g., 180 for half-cylinder)
+
+    Returns:
+        OperationResult with success status, message, and affected object name
+
+    Example - Basic cylinder:
+        create_cylinder_tool(
+            name="Shaft",
+            radius=5,
+            height=40,
+            description="M10 bolt shaft"
+        )
+
+    Example - Half cylinder at custom position:
+        create_cylinder_tool(
+            name="HalfCylinder",
+            radius=8,
+            height=25,
+            position=(10, 20, 5),
+            angle=180,
+            description="Half cylinder component"
+        )
+    """
+    return create_cylinder(
+        name=name,
+        radius=radius,
+        height=height,
+        description=description,
+        position=position,
+        angle=angle,
+    )
 
 
 # ============================================================================

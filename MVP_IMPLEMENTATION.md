@@ -1,6 +1,6 @@
 # MVP Implementation Plan
 
-Implementation plan for adam-mcp MVP (8 core structured operations + lightweight discovery).
+Implementation plan for adam-mcp MVP (7 core operations via flat, operation-specific tools).
 
 **IMPORTANT:** See **DEMO_PLAN.md** for complete demonstration strategy and rationale for operation selection.
 
@@ -8,22 +8,29 @@ Implementation plan for adam-mcp MVP (8 core structured operations + lightweight
 
 ## MVP Scope
 
-**Goal:** Demonstrate two key value propositions through M10 bolt + washer creation
+**Goal:** Demonstrate three key value propositions through M10 bolt + washer creation and editing
 
 **Success Criteria:**
-- **Creation from scratch:** M10×40 bolt using primitive operations (cylinder + fusion + fillet)
-- **Intelligent editing:** Claude inspects bolt, adds threads based on discovered dimensions
+- **Creation from scratch:** M10×40 bolt using primitive operations (cylinder + threads)
+- **Intelligent editing:** Claude inspects washer, modifies properties based on discovered dimensions
 - **Sketch-based workflow:** M10 washer using sketch operations (sketch + pad + pocket)
 - **Context discovery:** Claude verifies washer fits bolt through dimensional inspection
+- **Property modification:** Claude changes object properties (e.g., increase washer thickness for heavy-duty use)
 - Clear error messages with recovery guidance
 
-**Design Rationale:** Operations chosen specifically to demonstrate both primitive-based and sketch-based workflows, plus intelligent context discovery. See DEMO_PLAN.md for detailed demonstration flow and context/DECISIONS.md for architectural rationale.
+**Design Rationale:** Operations chosen to demonstrate creation, inspection, AND editing workflows. Prioritizes core editing capability over polish features (fillet, fusion). See DEMO_PLAN.md for detailed demonstration flow and context/DECISIONS.md for architectural rationale.
 
-**Tools:** 4 total
+**Tools:** Operation-specific tools (flat parameters for MCP compatibility)
 1. `list_objects()` - List objects in document (✅ implemented)
 2. `get_object_details(names)` - Get object details (✅ implemented)
-3. `list_available_operations(category)` - Discover operations by category (planned)
-4. `execute_standard_operation(operation)` - Execute JSON operation with 8 MVP ops (planned)
+3. 7 operation tools with flat parameters (planned):
+   - `create_cylinder_tool()` - Create cylindrical primitive (✅ implemented)
+   - `create_sketch_tool()` - Create 2D sketch
+   - `add_sketch_circle_tool()` - Add circle to sketch
+   - `create_pad_tool()` - Extrude sketch into solid
+   - `create_pocket_tool()` - Cut material from solid
+   - `create_thread_tool()` - Add ISO metric threads
+   - `modify_object_tool()` - Modify object properties (e.g., radius, height, length) ⭐ NEW
 
 ---
 
@@ -46,26 +53,114 @@ Before implementing MVP operations, migrate to the new scalable structure:
 
 ---
 
+## Incremental Implementation Strategy
+
+**RECOMMENDED:** Implement in 3 iterations with validation checkpoints to catch issues early.
+
+### Iteration 1: Single Operation End-to-End (2-3 hours)
+**Goal:** Prove the entire pipeline works with minimal code
+
+**Implement:**
+- CreateCylinder model only (~25 LOC)
+- OperationResult model (~15 LOC)
+- Cylinder handler (~40 LOC)
+- Basic dispatcher (~40 LOC)
+- Minimal execution tool (~30 LOC)
+- Essential constants (~30 LOC)
+- Register in server.py (~20 LOC)
+
+**Total: ~200 LOC**
+
+**Validate:**
+- Create cylinder via MCP
+- Open in FreeCAD GUI, verify dimensions
+- Test error handling (negative radius, duplicate names)
+- Confirm Pydantic validation works
+
+**Why first:** Validates architecture decisions, discovers integration issues early, fast feedback on validation strategy.
+
+---
+
+### Iteration 2: Sketch Operations (1-2 hours)
+**Goal:** Add sketch-based workflow for washer creation
+
+**Implement:**
+- CreateSketch, AddSketchCircle models (~50 LOC)
+- Sketch handlers (~80 LOC)
+- Sketch operation functions (~60 LOC)
+- Tool registration (~50 LOC)
+- Update dispatcher (~20 LOC)
+
+**Total: ~260 LOC (cumulative: ~460 LOC)**
+
+**Validate:**
+- Create sketches via MCP
+- Add circles to sketches via MCP
+- Verify sketch geometry in FreeCAD GUI
+- Test sketch-based workflow
+
+**Why second:** Validates sketch operations, second workflow pattern after primitives.
+
+---
+
+### Iteration 3: Feature Operations + Editing (2-3 hours)
+**Goal:** Add remaining operations including core editing capability
+
+**Implement:**
+- CreatePad, CreatePocket, CreateThread models (~75 LOC)
+- ModifyObject model (~20 LOC)
+- Feature handlers (~120 LOC)
+- ModifyObject handler (~40 LOC - simpler than features!)
+- Validators (references, basic geometry) (~80 LOC)
+- Operation functions (~90 LOC)
+- Tool registration (~70 LOC)
+- Error message templates (~50 LOC)
+- Update dispatcher (~30 LOC)
+
+**Total: ~575 LOC (cumulative: ~1,035 LOC)**
+
+**Validate:**
+- Run complete demo flow (M10 bolt + washer)
+- Test property modification (change washer thickness)
+- Verify all operations work in FreeCAD GUI
+- Test intelligent editing workflow (inspect → modify)
+- Confirm demo success criteria met
+
+**Why last:** Pattern is proven, this completes creation + editing capabilities.
+
+---
+
+**Benefits of incremental approach:**
+- Fast validation after each iteration (not 8-10 hours before first test)
+- Catch architecture issues early (200 LOC vs 1,000 LOC to rework)
+- Clear success criteria for each iteration
+- Manageable 2-3 hour chunks vs full-day marathon
+
+---
+
 ## Implementation Order
 
 ### Phase 1: Operation Models (models/operations/)
 
-**Define MVP operation Pydantic models with rich descriptions and examples (~300 LOC across 4 files)**
+**Define MVP operation Pydantic models with rich descriptions and examples (~230 LOC across 4 files)**
 
 **Key principle:** Make auto-generated JSON schema as helpful as possible through rich docstrings and field descriptions. Include usage examples in model docstrings.
 
-**MVP Operations (8 total):** Minimal set for M10 bolt + washer demo (see DEMO_PLAN.md)
-- Primitives: Cylinder (bolt shaft/head)
+**MVP Operations (7 total):** Minimal set for M10 bolt + washer demo with editing (see DEMO_PLAN.md)
+- Primitives: CreateCylinder (bolt body)
 - Sketches: CreateSketch, AddSketchCircle (washer profile/hole)
-- Features: Pad, Pocket, Fillet, Thread (washer body/hole, rounding, bolt threads)
-- Booleans: Fusion (combine bolt shaft + head)
+- Features: CreatePad, CreatePocket, CreateThread (washer body/hole, bolt threads)
+- Modifications: ModifyObject (edit object properties - e.g., change dimensions)
+
+**Removed from original plan:** CreateFillet (polish), CreateFusion (not needed - single cylinder bolt)
+**Why:** Prioritize core editing capability over polish features. ModifyObject demonstrates true property modification.
 
 **File locations:**
-- `models/base.py` - BaseOperation (~30 LOC)
-- `models/operations/primitives.py` - 1 primitive model: CreateCylinder (~25 LOC)
+- `models/base.py` - BaseOperation (~30 LOC) ✅
+- `models/operations/primitives.py` - 1 primitive: CreateCylinder (~25 LOC) ✅
 - `models/operations/sketches.py` - 2 sketch models: CreateSketch, AddSketchCircle (~50 LOC)
-- `models/operations/features.py` - 4 feature models: CreatePad, CreatePocket, CreateFillet, CreateThread (~110 LOC)
-- `models/operations/booleans.py` - 1 boolean model: CreateFusion (~20 LOC)
+- `models/operations/features.py` - 3 feature models: CreatePad, CreatePocket, CreateThread (~80 LOC)
+- `models/operations/modifications.py` - 1 modification model: ModifyObject (~20 LOC)
 
 #### 1.1 Base Models
 
@@ -346,106 +441,65 @@ class CreateFusion(BaseOperation):
 # CreateCut, CreateCommon (intersection) - Post-MVP (add when needed)
 ```
 
-#### 1.6 Union Type
+#### 1.6 Modifications (1 model for MVP)
+
+```python
+class ModifyObject(BaseOperation):
+    """
+    Modify properties of existing object.
+
+    Example - Change cylinder dimensions:
+        {
+            "action": "modify_object",
+            "name": "Shaft",
+            "property": "Radius",
+            "value": 6.0,
+            "description": "Increase shaft radius to 6mm"
+        }
+
+    Example - Change pad length:
+        {
+            "action": "modify_object",
+            "name": "Washer",
+            "property": "Length",
+            "value": 4.0,
+            "description": "Increase washer thickness for heavy-duty use"
+        }
+
+    Note: Property names are FreeCAD-specific. Use get_object_details() to discover available properties.
+    """
+    action: Literal["modify_object"] = "modify_object"
+    name: str = Field(description="Name of object to modify")
+    property: str = Field(description="Property name (e.g., 'Radius', 'Height', 'Length')")
+    value: float | str | tuple[float, ...] = Field(
+        description="New value for property"
+    )
+```
+
+#### 1.7 Union Type
 
 ```python
 Operation = (
     CreateCylinder |
     CreateSketch | AddSketchCircle |
-    CreatePad | CreatePocket | CreateFillet | CreateThread |
-    CreateFusion
+    CreatePad | CreatePocket | CreateThread |
+    ModifyObject
 )
 ```
 
-**Deliverable:** 8 MVP operation models with validation and rich descriptions
+**Deliverable:** 7 MVP operation models with validation and rich descriptions
 
 **Post-MVP expansions:**
-- Additional primitives (Sphere, Cone, Torus)
-- Additional sketch geometry (Line, Arc, Rectangle, Polygon)
-- Additional features (Revolution, Hole, Draft, Loft)
-- Additional booleans (Common/Intersection)
-- Modifications (ModifyObject for property updates)
-- Patterns (Linear, Polar, Mirror)/examples
+- Additional primitives (Sphere, Cone, Torus, Box)
+- Additional sketch geometry (Line, Arc, Rectangle, Polygon, Constraint)
+- Additional features (Revolution, Hole, Draft, Loft, Fillet, Chamfer)
+- Booleans (Fusion, Cut, Common/Intersection)
+- Advanced modifications (position, rotation, mirroring)
+- Patterns (Linear, Polar, Mirror)
 
 ---
 
-### Phase 1.5: Lightweight Discovery Tool (tools/discovery.py)
-
-**Implement minimal operation discovery (~50 LOC)**
-
-**File location:** `tools/discovery.py`
-
-```python
-class OperationCatalog(BaseModel):
-    """Catalog of available operations by category"""
-    operations_by_category: dict[str, list[str]] = Field(
-        description="Operation names organized by category"
-    )
-    total_count: int = Field(description="Total number of operations")
-
-def list_available_operations(
-    category: Literal["all", "primitives", "sketches", "features", "booleans", "modifications"] | None = None
-) -> OperationCatalog:
-    """
-    List available CAD operation names organized by category.
-
-    Use this to discover which operations exist and browse by category.
-    For detailed parameter information, refer to the execute_standard_operation
-    tool schema which contains complete documentation for each operation type.
-
-    Args:
-        category: Filter by category, or None/"all" for complete list
-
-    Returns:
-        Operation names organized by category
-
-    Example:
-        list_available_operations(category="primitives")
-        → {"primitives": ["create_box", "create_cylinder", ...]}
-    """
-    operations_by_category = {
-        "primitives": [
-            "create_box", "create_cylinder", "create_sphere",
-            "create_cone", "create_torus"
-        ],
-        "sketches": [
-            "create_sketch", "add_sketch_line", "add_sketch_circle",
-            "add_sketch_arc", "add_sketch_constraint"
-        ],
-        "features": [
-            "create_pad", "create_pocket", "create_revolution",
-            "create_fillet", "create_chamfer", "create_hole", "create_thread"
-        ],
-        "booleans": [
-            "create_fusion", "create_cut", "create_common"
-        ],
-        "modifications": [
-            "modify_object"
-        ]
-    }
-
-    if category and category != "all":
-        filtered = {category: operations_by_category.get(category, [])}
-        total = len(filtered.get(category, []))
-        return OperationCatalog(
-            operations_by_category=filtered,
-            total_count=total
-        )
-
-    total = sum(len(ops) for ops in operations_by_category.values())
-    return OperationCatalog(
-        operations_by_category=operations_by_category,
-        total_count=total
-    )
-```
-
-**Benefits:**
-- Token efficient: ~100 tokens per call (just operation names)
-- Enables browsing by category
-- Parameter details come from cached schema (no duplication)
-- Always in sync (just maintains list of names)
-
-**Deliverable:** Lightweight discovery tool (~50 LOC)
+**Note on Discovery:** No separate discovery tool needed. Tool list provides natural discovery - Claude can see all available operation tools (create_cylinder_tool, create_pad_tool, etc.) directly in the tool list.
 
 ---
 
@@ -595,82 +649,128 @@ def execute_standard_operation(operation: Operation) -> OperationResult:
 
 ---
 
-### Phase 3: Standard Execution Tool (tools/execution.py)
+### Phase 3: Operation Execution Functions (tools/execution.py)
 
-**Wire up standard operation execution (~50 LOC)**
+**Create operation-specific functions with flat parameters (~90 LOC per iteration)**
 
 **File location:** `tools/execution.py`
 
-```python
-"""Standard CAD operation execution tool"""
+**Design Decision:** Use **flat, operation-specific tools** instead of a unified tool with complex parameters. This solves MCP integration issues where nested Pydantic models get stringified, and makes tools more discoverable and easier to use.
 
-from adam_mcp.models.operations import Operation
+**Pattern:**
+```python
+"""CAD operation execution functions (one per operation type)"""
+
+from adam_mcp.models.operations.primitives import CreateCylinder
 from adam_mcp.models.responses import OperationResult
 from adam_mcp.operations.dispatcher import execute_operation
 
-def execute_standard_operation(operation: Operation) -> OperationResult:
+def create_cylinder(
+    name: str,
+    radius: float,
+    height: float,
+    description: str,
+    position: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    angle: float = 360.0,
+) -> OperationResult:
     """
-    Execute a standard CAD operation.
+    Create a cylindrical primitive.
 
-    Thin wrapper that calls into operations/dispatcher.py
+    All parameters are flat and simple (no nested objects).
+    Function constructs Pydantic model internally and calls dispatcher.
     """
+    operation = CreateCylinder(
+        name=name,
+        radius=radius,
+        height=height,
+        description=description,
+        position=position,
+        angle=angle,
+    )
     return execute_operation(operation)
 ```
 
-**Deliverable:** Standard execution tool registered and callable
+**Benefits:**
+- Simple, flat parameters (work with MCP integration)
+- Each operation is self-documenting
+- Natural discoverability (search "create cylinder" → finds tool)
+- Type-safe (Pydantic validation still happens internally)
+- Scales well (~23 tools for full feature set)
+
+**Deliverable:** One function per operation with flat parameters
 
 ---
 
 ### Phase 4: Tool Registration (core/server.py)
 
-**Register tools with FastMCP (~60 LOC)**
+**Register operation-specific tools with FastMCP (~60 LOC per operation)**
 
 **File location:** `core/server.py`
 
+**Pattern:** One MCP tool per operation, each with flat parameters that map directly to function parameters.
+
 ```python
-from adam_mcp.tools.query import (
-    list_objects,
-    get_object_details,
+from adam_mcp.tools.execution import (
+    create_cylinder,
+    create_sketch,
+    add_sketch_circle,
+    create_pad,
+    create_pocket,
+    create_fillet,
+    create_thread,
+    create_fusion,
 )
-from adam_mcp.tools.discovery import list_available_operations
-from adam_mcp.tools.execution import execute_standard_operation
 
 @mcp.tool()
-def list_available_operations_tool(
-    category: Literal["all", "primitives", "sketches", "features", "booleans"] | None = None
-) -> OperationCatalog:
+def create_cylinder_tool(
+    name: str,
+    radius: float,
+    height: float,
+    description: str,
+    position: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    angle: float = 360.0,
+) -> OperationResult:
     """
-    List available CAD operation names organized by category.
+    Create a cylindrical primitive.
 
-    Use this to discover which operations exist. For detailed parameter
-    information, refer to the execute_standard_operation tool schema.
+    Args:
+        name: Unique object name (max 100 chars)
+        radius: Radius in mm (range: 0.1 - 10000)
+        height: Height in mm (range: 0.1 - 10000)
+        description: Human-readable description
+        position: Position (x, y, z) in mm. Defaults to origin.
+        angle: Sweep angle 0-360 degrees. Defaults to 360 (full cylinder).
 
-    Operations are organized into categories:
-    - primitives: Basic shapes (box, cylinder)
-    - sketches: 2D sketch creation and geometry
-    - features: PartDesign operations (pad, pocket, fillet, chamfer, thread)
-    - booleans: Combine shapes (fusion, cut)
+    Example:
+        create_cylinder_tool(
+            name="Shaft",
+            radius=5,
+            height=40,
+            description="M10 bolt shaft"
+        )
     """
-    return list_available_operations(category)
+    return create_cylinder(name, radius, height, description, position, angle)
 
-@mcp.tool()
-def execute_standard_operation_tool(operation: Operation) -> OperationResult:
-    """
-    Execute a standard CAD operation (create/modify one object).
-
-    Supports 8 MVP operations for M10 bolt + washer demo (see DEMO_PLAN.md):
-    - Primitives: cylinder
-    - Sketches: create sketch, add circle
-    - Features: pad, pocket, fillet, thread
-    - Booleans: fusion
-
-    All parameters validated before execution. One operation affects one object.
-    See DEMO_PLAN.md for demonstration strategy and context/DECISIONS.md for architectural rationale.
-    """
-    return execute_standard_operation(operation)
+# Register tools for all 8 MVP operations following the same pattern
+# - create_sketch_tool
+# - add_sketch_circle_tool
+# - create_pad_tool
+# - create_pocket_tool
+# - create_fillet_tool
+# - create_thread_tool
+# - create_fusion_tool
 ```
 
-**Deliverable:** 4 tools registered and callable via MCP
+**Why this approach:**
+- **Works with MCP integration**: Flat parameters don't get stringified
+- **Discoverable**: Each operation is a named tool
+- **Self-documenting**: Tool name + docstring is clear
+- **Type-safe**: FastMCP generates schemas from type hints
+- **Scalable**: ~23 tools for full feature set (manageable)
+
+**Discovery tool removed:** Not needed - tool list serves as natural discovery
+
+**Deliverable:** 8 MVP operation tools + 9 infrastructure tools = 17 total tools
 
 ---
 
@@ -709,46 +809,50 @@ SUCCESS_OPERATION_CUSTOM = "Successfully executed custom operation: {description
 
 Before marking MVP complete:
 
-- [ ] 8 MVP operation models defined with Pydantic validation
-- [ ] 8 MVP operation handlers implemented with 3-layer validation
-- [ ] 4 tools registered with FastMCP
-- [ ] All constants extracted to constants/ (organized by domain)
-- [ ] Pre-commit passes (mypy, ruff, formatting)
-- [ ] Error messages explain what + how to fix
-- [ ] Can create M10 bolt from scratch (primitive workflow)
+- [x] 7 MVP operation models defined with Pydantic validation (1/7 complete)
+- [ ] 7 MVP operation handlers implemented with 3-layer validation (1/7 complete)
+- [ ] 7 operation-specific tools registered with FastMCP (flat parameters) (1/7 complete)
+- [x] All constants extracted to constants/ (organized by domain)
+- [x] Pre-commit passes (mypy, ruff, formatting)
+- [x] Error messages explain what + how to fix
+- [ ] Claude can create M10 bolt from scratch via MCP tools (primitive workflow)
 - [ ] Claude can inspect bolt and add threads (intelligent editing)
-- [ ] Can create M10 washer (sketch workflow)
+- [ ] Claude can create M10 washer via MCP tools (sketch workflow)
+- [ ] Claude can modify washer properties after inspection (core editing workflow) ⭐
 - [ ] Claude can verify washer fits bolt (context discovery)
-- [ ] Demo script validated (see DEMO_PLAN.md)
-- [ ] Documentation updated (DEMO_PLAN.md, context/DECISIONS.md)
+- [ ] Demo flow validated (see DEMO_PLAN.md)
+- [x] Documentation updated (MVP_IMPLEMENTATION.md reflects 7 operations with editing)
 
 ---
 
 ## Estimated LOC by Module
 
-**MVP (8 operations):**
+**MVP (7 operations via flat tools, includes editing):**
 
 | Module | Files | Est. LOC | Notes |
 |--------|-------|----------|-------|
-| **models/** | 6 | ~235 | 8 operation models with rich descriptions |
-| **operations/** | 6 | ~450 | Handlers, validators, dispatcher (reduced scope) |
-| **tools/** | 4 | ~350 | Tool implementations (query, discovery, execution, document) |
+| **models/** | 5 | ~205 | 7 operation models with rich descriptions |
+| **operations/** | 6 | ~400 | Handlers, validators, dispatcher |
+| **tools/** | 2 | ~615 | execution.py (~515 LOC for 7 ops), query.py (~100 LOC) |
 | **constants/** | 4 | ~200 | Organized constants |
-| **core/** | 3 | ~450 | Infrastructure (server, freecad, working_files) |
+| **core/** | 3 | ~800 | server.py (~550 LOC), freecad_env.py (~100 LOC), working_files.py (~150 LOC) |
 | **utils/** | 4 | ~300 | Utilities |
-| **Total** | **27** | **~1985** | Average ~74 LOC/file |
+| **Total** | **24** | **~2520** | Average ~105 LOC/file |
 
-**Rationale for reduced scope:**
-- Focus on demo requirements (M10 bolt + washer)
-- Validates both primitive-based and sketch-based workflows
-- Demonstrates intelligent context discovery
-- Faster implementation, cleaner validation
+**Rationale for operation selection:**
+- Focus on core workflows: creation + inspection + **editing**
+- Removed CreateFillet (polish), CreateFusion (not needed with single-cylinder bolt)
+- Added ModifyObject (core editing capability - change properties after creation)
+- Still demonstrates both primitive-based and sketch-based workflows
+- **Key improvement:** True editing workflow (inspect → modify) vs just additive operations
 - See DEMO_PLAN.md for demonstration strategy
 
 **Post-MVP expansions (incremental):**
-- Each new operation: ~50 LOC (model + handler + validation)
-- Structure scales well - add to existing files
-- Estimated final: ~4000-5000 LOC for comprehensive CAD coverage
+- Each new operation: ~75 LOC (model + handler + function + tool registration)
+- Flat tools scale well - clear naming patterns (create_*, modify_*)
+- Priority additions: CreateFillet, CreateFusion, CreateBox, AddSketchLine, CreateChamfer
+- Estimated final: ~4000-5000 LOC for comprehensive CAD coverage (~25-30 operations)
+- Natural tool discovery (no separate discovery tool needed)
 
 ---
 

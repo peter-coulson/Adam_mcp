@@ -25,89 +25,124 @@ Key technical choices and rationale for adam-mcp.
 
 ---
 
-## Operation Selection: Demo-Driven Approach
+## Operation Selection: Core Workflows Over Polish Features
 
-**Decision:** 8 operations chosen specifically for demo requirements
+**Decision:** 7 operations prioritizing creation + editing workflows over polish features
 
-**The 8 operations:**
-1. **CreateCylinder** - Bolt shaft/head primitives
+**The 7 MVP operations:**
+1. **CreateCylinder** - Bolt body (simple primitive)
 2. **CreateSketch** - Start 2D sketches (washer profile)
 3. **AddSketchCircle** - Circles in sketches (washer outer/inner)
 4. **CreatePad** - Extrude sketches (washer body)
 5. **CreatePocket** - Cut from solids (washer hole)
-6. **CreateFillet** - Round edges (bolt head, washer edges)
-7. **CreateThread** - Add ISO threads (bolt shaft)
-8. **CreateFusion** - Combine shapes (bolt shaft + head)
+6. **CreateThread** - Add ISO threads (bolt shaft)
+7. **ModifyObject** - Edit object properties (washer thickness, cylinder dimensions) ⭐ NEW
 
 **Why these specific operations:**
 
-### Demonstrates Two Workflows
-- **Primitive-based** (bolt): Fast creation using basic shapes → fusion → finishing
-- **Sketch-based** (washer): Precise 2D sketches → extrude/cut → finishing
-- Shows MCP server handles both paradigms without complexity
+### Demonstrates Three Core Workflows
+- **Primitive-based creation** (bolt): Fast creation using basic shapes
+- **Sketch-based creation** (washer): Precise 2D sketches → extrude/cut
+- **Property modification** (editing): Inspect → Analyze → Modify properties ⭐ NEW
+- Shows complete CAD workflow: create, inspect, edit
+
+### Core Editing Capability (ModifyObject)
+- **Why added:** Original 8-operation plan had NO editing capability
+- All operations were create-only (additive/subtractive), not modify
+- Demo claimed "intelligent editing" but only created new objects, never modified existing
+- **ModifyObject enables:** Change radius, height, length, position after creation
+- **Real workflow:** inspect_washer() → see 2mm thickness → modify to 4mm for heavy-duty
+- **Complexity:** ~115 LOC (simpler than CreateFillet at ~150 LOC)
+- **Value:** Core editing vs polish feature (fillet, fusion)
 
 ### Demonstrates Intelligent Context Discovery
 - Query tools (`list_objects`, `get_object_details`) already implemented
 - Demo Part 2: Claude inspects bolt, discovers M10 dimensions, adds matching threads
-- Demo Part 4: Claude verifies washer hole (11mm) fits bolt shaft (10mm) with clearance
-- **Key insight:** This isn't just operation execution - Claude understands geometry
+- Demo Part 4: Claude inspects washer, analyzes requirements, **modifies thickness** ⭐
+- **Key insight:** Claude can inspect → understand → modify (like human engineer)
 
 ### Minimal but Complete
-- **Additive:** CreateCylinder, CreatePad, CreateFusion
+- **Additive:** CreateCylinder, CreatePad
 - **Subtractive:** CreatePocket
-- **Finishing:** CreateFillet, CreateThread
+- **Advanced:** CreateThread (ISO engineering standards)
+- **Editing:** ModifyObject (change properties after creation) ⭐
 - **Foundation:** CreateSketch, AddSketchCircle
-- All essential operation types covered without redundancy
+- All essential workflows covered: create primitives, create sketches, edit properties
 
 ### Real Engineering Value
 - ISO M10 standard parts (objective validation criteria)
 - Mating parts (bolt + washer) show practical workflow
-- Demonstrates engineering knowledge (clearances, standards, threads)
+- Property modification shows iterative design (create → inspect → refine)
+- Demonstrates engineering knowledge (clearances, standards, threads, material specs)
+
+**What we removed to add ModifyObject:**
+- ❌ CreateFillet - Polish feature (rounded edges). Nice but not essential for MVP
+- ❌ CreateFusion - Boolean union. Not needed (single cylinder bolt simpler than shaft+head fusion)
 
 **What we intentionally excluded from MVP:**
 - ❌ CreateBox - Not needed (primitive workflow covered by CreateCylinder)
 - ❌ AddSketchRectangle - Washer uses circles
 - ❌ AddSketchConstraint - Parametric design (advanced, post-MVP)
-- ❌ CreateChamfer - Redundant with CreateFillet
-- ❌ CreateCut - Boolean subtraction (fusion covers boolean demo)
-- ❌ Additional primitives (Sphere, Cone, Torus) - Not needed
+- ❌ CreateChamfer - Similar to CreateFillet (polish)
+- ❌ CreateCut - Boolean subtraction (CreatePocket covers cutting)
+- ❌ Additional primitives (Sphere, Cone, Torus) - Not needed for demo
 
 **Expansion strategy:**
 - Add operations as real needs arise (not speculatively)
-- Each new operation: ~50 LOC (model + handler + validation)
-- Structure scales to 20-30+ operations without refactoring
+- Each new operation: ~75 LOC (model + handler + function + tool)
+- Priority additions: CreateFillet, CreateFusion, CreateBox, AddSketchLine
+- Structure scales to 25-30+ operations without refactoring
 
 **Result:**
 - Original plan: 12 operations
-- Demo-focused: 8 operations (33% less implementation)
-- Equally compelling demo, faster validation
+- First reduction: 8 operations (removed CreateBox, etc.)
+- Final: 7 operations (removed Fillet/Fusion, added ModifyObject)
+- **Better demo:** Shows create + inspect + **edit** workflows (not just create)
 
 ---
 
-## Tool Philosophy: Structured Operations Only
+## Tool Philosophy: Operation-Specific Tools with Flat Parameters
 
-**Decision:** 4 tools - structured JSON operations (NO Python fallback)
+**Decision:** Operation-specific tools (one per operation) with flat parameters (NO Python fallback, NO nested objects)
 
-**Tools:**
+**Tool Architecture:**
 1. **`list_objects()`** - Lightweight overview (names, types, dependencies)
 2. **`get_object_details(names)`** - Rich context on-demand (geometry, properties)
-3. **`list_available_operations(category)`** - Discover operations by category (token-efficient)
-4. **`execute_standard_operation(operation)`** - Structured JSON operations with validation
+3. **Operation tools** - One tool per operation with flat parameters:
+   - `create_cylinder_tool(name, radius, height, description, position, angle)`
+   - `create_pad_tool(name, sketch, length, description, reversed)`
+   - `create_fillet_tool(name, base, edges, radius, description)`
+   - etc. (~17 tools for MVP, ~32 for full feature set)
 
-**Rationale for structured operations:**
-- Better pre-execution validation (Pydantic catches errors before FreeCAD execution)
-- Clearer error messages ("Field 'radius' must be positive" vs FreeCAD runtime errors)
-- More token-efficient (JSON more compact than Python boilerplate)
-- Type-safe (all parameters validated against schemas)
-- Cleaner for common operations (creating primitives, features, booleans)
-- Forces proper operation design (no escape hatch to poorly-validated code)
+**Rationale for flat, operation-specific tools:**
+
+### MCP Integration Compatibility
+- **Nested objects get stringified:** MCP/Claude Code integration treats complex nested Pydantic parameters as strings, breaking validation
+- **Flat parameters work natively:** Simple types (str, float, list) pass through correctly
+- **Tested and verified:** Unified tool approach failed with "not of type 'object'" errors. Flat tools work first time.
+
+### Better Discoverability
+- **Natural search:** User thinks "create cylinder" → finds `create_cylinder_tool` directly
+- **Self-documenting:** Each tool name describes what it does
+- **No discovery tool needed:** Tool list provides natural discovery
+- **Clear intent:** `create_cylinder_tool` vs `execute_standard_operation(action="create_cylinder", ...)`
+
+### Type Safety Maintained
+- **Pydantic validation still happens:** Functions construct Pydantic models internally
+- **3-layer validation preserved:** Pydantic → Semantic → Geometry (unchanged)
+- **FastMCP schema generation:** Auto-generates schemas from type hints (flat params)
+
+### Scales Well
+- **32 tools for full feature set:** Manageable for Claude (regularly works with 50-100+ tools)
+- **Clear naming patterns:** `create_*`, `add_*`, `modify_*` prefixes
+- **One tool = one responsibility:** Each tool focused and simple
 
 **Rationale for NO Python fallback:**
 See "Python Fallback - Explicitly Rejected" section below for detailed reasoning.
 
-**Operation boundary:** One operation = create/modify ONE FreeCAD object. Can set multiple properties, but not create/modify multiple independent objects.
+**Operation boundary:** One tool = create/modify ONE FreeCAD object. Can set multiple properties, but not create/modify multiple independent objects.
 
-**MVP scope:** 8 core operations (sufficient for M10 bolt + washer demo). Expand incrementally based on real needs. See DEMO_PLAN.md and MVP_IMPLEMENTATION.md
+**MVP scope:** 8 operation tools (sufficient for M10 bolt + washer demo). Expand incrementally based on real needs. See DEMO_PLAN.md and MVP_IMPLEMENTATION.md
 
 ---
 
@@ -216,28 +251,34 @@ See "Python Fallback - Explicitly Rejected" section below for detailed reasoning
 
 **Challenge:** How does Claude discover which operations are available and what parameters they require?
 
-**Decision:** Lightweight discovery tool + Rich schema descriptions
+**Decision:** Natural tool list discovery (no separate discovery tool needed)
 
 **Approach:**
-1. **`list_available_operations(category)`** - Returns operation names by category (~100 tokens)
-2. **Rich Pydantic descriptions** - Model docstrings with examples, Field descriptions with ranges/units
-3. **Leverage MCP schema caching** - Auto-generated schema sent once at connection, not per-call
+1. **Tool list provides discovery** - Claude sees all available tools directly
+   - `create_cylinder_tool`, `create_pad_tool`, `create_fillet_tool`, etc.
+   - Clear naming pattern (`create_*`, `add_*`, `modify_*`)
+   - Tool names are self-documenting
+2. **Rich tool docstrings** - Each tool has clear description with examples
+3. **FastMCP schema generation** - Auto-generated schemas from type hints
+4. **MCP schema caching** - Schemas sent once at connection, not per-call
 
 **Rationale:**
-- Token efficient (100 tokens vs 3,800 for full details)
-- No information duplication (details in cached schema)
-- Enables categorized browsing (primitives, features, booleans, etc.)
-- Always in sync (just maintains list of operation names)
+- **No extra tool needed:** Tool list itself is the discovery mechanism
+- **More intuitive:** "I want to create a cylinder" → search tool list → find `create_cylinder_tool`
+- **No token overhead:** Discovery happens at connection time (schema caching)
+- **Always in sync:** Tool registration = available operations (single source of truth)
+- **Better than unified tool:** No need to know `action` values or reference separate discovery
 
 **Example workflow:**
 ```
-Claude: list_available_operations(category="features")
-        → {"features": ["create_pad", "create_fillet", ...]}
-Claude: *Refers to cached schema for create_fillet parameters*
-Claude: execute_standard_operation({action: "create_fillet", ...})
+Claude: *Sees create_cylinder_tool in tool list*
+Claude: *Reads cached schema for parameters*
+Claude: create_cylinder_tool(name="Shaft", radius=5, height=40, description="...")
 ```
 
-**Rejected alternative:** Full discovery tool returning all parameters/examples (~3,800 tokens, duplicates schema)
+**Rejected alternatives:**
+- Separate `list_available_operations` tool - redundant with tool list
+- Unified `execute_standard_operation` with discovery - breaks MCP integration (nested objects)
 
 ---
 
@@ -246,13 +287,15 @@ Claude: execute_standard_operation({action: "create_fillet", ...})
 **Implemented:**
 - `list_objects()` - Query document objects (validated on engineering parts)
 - `get_object_details()` - Get object details (validated on engineering parts)
+- `create_cylinder_tool()` - Create cylindrical primitive (validated with flat parameters)
 
 **Planned:**
-- `list_available_operations(category)` - Discover operations by category (~50 LOC)
-- `execute_standard_operation(operation)` - Execute 8 MVP JSON operations (~400 LOC)
+- 7 additional operation tools with flat parameters
+  - `create_sketch_tool()`, `add_sketch_circle_tool()`, `create_pad_tool()`
+  - `create_pocket_tool()`, `create_fillet_tool()`, `create_thread_tool()`, `create_fusion_tool()`
 
-**Total MVP tools: 4**
-**Total MVP operations: 8** (demo-focused scope, see "Operation Selection" above)
+**Total MVP tools: 17** (9 infrastructure + 8 operations)
+**Total full feature tools: 32** (9 infrastructure + ~23 operations)
 
 ---
 
@@ -319,6 +362,24 @@ Claude: execute_standard_operation({action: "create_fillet", ...})
 
 ## Refactoring History
 
+### 2025-11-18: Flat Tools Architecture (MCP Integration Fix)
+- **Trigger:** Testing unified `execute_standard_operation_tool(operation: Operation)` failed with "not of type 'object'" validation errors. MCP/Claude Code integration stringified nested Pydantic parameters.
+- **Root cause:** Complex nested parameters (Pydantic models) get stringified by MCP integration layer, breaking validation. Flat parameters (str, float, list) work natively.
+- **Decision:** Refactor to operation-specific tools with flat parameters. One tool per operation (create_cylinder_tool, create_pad_tool, etc.).
+- **Implementation:**
+  - `tools/execution.py`: Add operation-specific functions wrapping Pydantic models (~90 LOC per operation)
+  - `server.py`: Register individual tools with flat parameters (~60 LOC per operation)
+  - Remove discovery tool (tool list provides natural discovery)
+- **Rationale:**
+  - **MCP compatibility:** Flat parameters work first time, no validation errors
+  - **Better discoverability:** Tool names self-documenting (create_cylinder_tool vs execute_standard_operation)
+  - **Type safety maintained:** Functions construct Pydantic models internally, 3-layer validation preserved
+  - **Scales well:** 32 tools for full feature set is manageable for Claude (regularly works with 50-100+ tools)
+  - **Clearer separation:** Create vs modify operations are distinct tools
+- **Testing:** Validated create_cylinder_tool with all parameter variations (minimal, optional, error handling)
+- **Result:** MVP: 17 tools (9 infrastructure + 8 operations). Full feature set: ~32 tools. Claude can use tools directly without workarounds.
+- **Documentation:** Updated MVP_IMPLEMENTATION.md, CLAUDE.md, DECISIONS.md to reflect flat tools design
+
 ### 2025-11-18: Demo-Driven Scope Refinement (12 → 8 operations)
 - **Trigger:** Reviewing operation list against demo requirements. Asked: "What's the minimal set for a compelling demo?"
 - **Analysis:** Original plan had 12 operations including CreateBox, AddSketchConstraint, CreateChamfer, CreateCut. Analyzed which operations are essential for M10 bolt + washer demo.
@@ -364,4 +425,4 @@ Claude: execute_standard_operation({action: "create_fillet", ...})
 
 ---
 
-**Last Updated:** 2025-11-18
+**Last Updated:** 2025-11-18 (flat tools architecture)

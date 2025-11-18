@@ -1,4 +1,81 @@
 """Operation dispatcher - routes operations to handlers"""
 
-# TODO: Implement operation dispatcher during MVP Phase 2
-# This will route operation.action → handler function and execute with 3-layer validation
+
+from adam_mcp.models.operations.primitives import CreateCylinder
+from adam_mcp.models.responses import OperationResult
+from adam_mcp.operations.handlers.primitives import execute_create_cylinder
+from adam_mcp.utils.errors import format_freecad_error
+from adam_mcp.utils.freecad import get_active_document
+from adam_mcp.utils.validation import validate_document
+
+# Union type of all supported operations (MVP Iteration 1: just CreateCylinder)
+Operation = CreateCylinder
+
+# Map operation actions to handler functions
+OPERATION_HANDLERS = {
+    "create_cylinder": execute_create_cylinder,
+}
+
+
+def execute_operation(operation: Operation) -> OperationResult:
+    """
+    Execute a CAD operation with 3-layer validation.
+
+    Validation layers:
+    1. Pre-execution (Pydantic): Type checking and range validation (automatic)
+    2. Semantic validation: Business logic (object existence, geometric constraints)
+    3. Post-execution: FreeCAD geometry validation
+
+    Args:
+        operation: Validated operation to execute
+
+    Returns:
+        OperationResult with success status and message
+
+    Raises:
+        No exceptions - all errors caught and returned in OperationResult
+    """
+    try:
+        # Get active document
+        doc = get_active_document()
+
+        # Get handler for this operation type
+        handler = OPERATION_HANDLERS.get(operation.action)
+        if not handler:
+            return OperationResult(
+                success=False,
+                message=f"Unknown operation: {operation.action}",
+                error_type="validation",
+            )
+
+        # Execute operation (semantic validation happens inside handler)
+        affected_name = handler(operation, doc)
+
+        # Post-execution validation (geometry check)
+        if not validate_document(doc):
+            return OperationResult(
+                success=False,
+                message="Operation produced invalid geometry. Document validation failed.",
+                error_type="geometry",
+            )
+
+        return OperationResult(
+            success=True,
+            message=f"Successfully created {affected_name}",
+            affected_object=affected_name,
+        )
+
+    except ValueError as e:
+        # Semantic validation errors (e.g., object already exists, invalid parameters)
+        return OperationResult(
+            success=False,
+            message=str(e),
+            error_type="validation",
+        )
+    except Exception as e:
+        # FreeCAD runtime errors
+        return OperationResult(
+            success=False,
+            message=format_freecad_error(e, "Operation failed"),
+            error_type="runtime",
+        )
