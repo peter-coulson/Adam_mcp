@@ -2,11 +2,18 @@
 
 Minimal MCP server exposing CAD operations for FreeCAD through the Model Context Protocol.
 
-## Current Scope
+## MVP Scope
 
-**Goal:** 3-5 excellent tools demonstrating sketch → extrude → fillet workflow
-
+**Target:** Engineering-grade machine parts (bolts, nuts, flanges, gears)
+**Success:** "Create M10×40 hex bolt" → Accurate ISO bolt in seconds
 **Tech Stack:** Python 3.10+, FreeCAD, FastMCP, Pydantic
+
+**Tool Philosophy:** 3 generalized tools (not 10-20 specialized tools)
+1. `list_objects()` - Lightweight overview
+2. `get_object_details(names)` - Rich context on-demand
+3. `execute_cad_operation(code, description)` - All create/update/delete operations
+
+**Workflow Model:** Sequential single-object operations (matches CAD's dependency chain)
 
 ## Codebase Structure
 
@@ -22,7 +29,7 @@ src/adam_mcp/
   └── tools/
       ├── __init__.py
       └── document.py       # Document management tools
-      # Future: sketch.py, extrude.py, fillet.py
+      # Future: cad_operations.py (list_objects, get_object_details, execute_cad_operation)
 ```
 
 **Module Responsibilities:** See context/DECISIONS.md for detailed architecture
@@ -38,10 +45,11 @@ src/adam_mcp/
 - **Quality over quantity** - 3-5 excellent tools, not 12 half-baked ones
 
 ### Architecture Decisions
-- **Direct API integration** - No socket layers, direct FreeCAD imports (simpler than reference implementation)
-- **Tool-centric design** - Each tool is self-contained with validation + execution logic
-- **Separation of concerns** - MCP tool definitions separate from FreeCAD operations
+- **Direct API integration** - No socket layers, direct FreeCAD imports
+- **Generalized tools** - 3 flexible tools that leverage Claude's intelligence, not 10-20 specialized hand-holding tools
+- **Sequential operations** - One focused operation at a time (matches CAD dependency chain)
 - **Modular structure** - server.py is a slim entry point. Infrastructure extracted into focused modules
+- **Sandboxed execution** - FreeCAD scripts run in restricted namespace (FreeCAD modules only, no os/subprocess)
 
 ### Implementation Guidance
 
@@ -64,9 +72,10 @@ src/adam_mcp/
 - Catch and translate FreeCAD exceptions to user-friendly messages
 
 **Security:**
-- Never use `exec()` or `eval()` with user input
-- Validate file paths if file operations added
-- Limit parameter ranges to prevent resource exhaustion
+- Sandboxed script execution for CAD operations (restricted namespace, FreeCAD only)
+- This is trusted execution environment (like Jupyter) - different from general exec() prohibition
+- Time limits (10s per operation)
+- Validation after execution (geometry checks)
 
 **Constants & Configuration:**
 - ALL constants live in `constants.py` - single source of truth
@@ -74,12 +83,12 @@ src/adam_mcp/
 - Use named constants for dimensions, tolerances, messages, paths
 
 **Tool Design:**
-- Idempotent where possible (same inputs → same result)
-- Document prerequisites (e.g., "requires active document")
-- Return object references for use in subsequent calls
-- Progressive enhancement: core demo tools first, extras later
-- New tool categories go in `tools/` directory (e.g., `tools/sketch.py`)
-- Tool implementations separate from FastMCP registration in `server.py`
+- Write focused, single-object operations (not batch scripts)
+- Sequential workflow (inspect → operate → inspect → operate)
+- Fetch details on-demand (token efficient)
+- Claude writes FreeCAD Python code directly (leverages core competency)
+- Tool implementations in `tools/` directory (document.py, cad_operations.py)
+- FastMCP registration only in `server.py`
 
 ## Critical Workflow Rules
 
@@ -89,13 +98,13 @@ src/adam_mcp/
 ## Quality Checklist (before marking work complete)
 
 1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants.py`)
-2. ✓ Each tool tested in demo flow (sketch → extrude → fillet)?
+2. ✓ Tool tested with real example (e.g., M10 bolt creation)?
 3. ✓ Error messages explain what went wrong + how to fix?
 4. ✓ Type hints on all functions? (mypy must pass)
 5. ✓ Tool docstrings clear for Claude to understand?
 6. ✓ Each module has one clear purpose?
-7. ✓ New validation logic extracted if used more than once?
-8. ✓ New tools in appropriate `tools/*.py` file?
+7. ✓ Sandboxing works (restricted namespace, time limits)?
+8. ✓ Validation catches geometry errors?
 9. ✓ Imports use TYPE_CHECKING for FreeCAD?
 
 ## Documentation
