@@ -10,9 +10,11 @@ import tempfile
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from adam_mcp.constants.operations import AUTO_SAVE_INTERVAL, WORK_DIR_ENV_VAR, WORK_FILE_SUFFIX
+
+T = TypeVar("T")
 
 if TYPE_CHECKING:
     import FreeCAD
@@ -224,7 +226,7 @@ def increment_operation_counter() -> None:
         auto_save_working_file()
 
 
-def auto_save_after(func: Callable[..., Any]) -> Callable[..., Any]:
+def auto_save_after(func: Callable[..., T]) -> Callable[..., T]:
     """
     Decorator: auto-save working file after tool execution
 
@@ -239,9 +241,9 @@ def auto_save_after(func: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> T:
         result = func(*args, **kwargs)
         increment_operation_counter()
         return result
 
-    return wrapper
+    return cast(Callable[..., T], wrapper)

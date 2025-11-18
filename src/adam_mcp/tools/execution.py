@@ -1,6 +1,7 @@
 """CAD operation execution functions (one per operation type)"""
 
 from adam_mcp.models.operations.primitives import CreateCylinder
+from adam_mcp.models.operations.sketches import AddSketchCircle, CreateSketch
 from adam_mcp.models.responses import OperationResult
 from adam_mcp.operations.dispatcher import Operation, execute_operation
 
@@ -87,5 +88,118 @@ def create_cylinder(
         description=description,
         position=position,
         angle=angle,
+    )
+    return execute_operation(operation)
+
+
+# ============================================================================
+# Sketch Operations (MVP Iteration 2)
+# ============================================================================
+
+
+def create_sketch(
+    name: str,
+    description: str,
+    plane: str = "XY",
+) -> OperationResult:
+    """
+    Create a 2D sketch on specified plane.
+
+    Creates an empty sketch on the specified plane at the origin. After creating
+    the sketch, use add_sketch_circle, add_sketch_line, etc. to add geometry.
+
+    All parameters validated before execution:
+    - Pydantic validation (types, ranges)
+    - Semantic validation (duplicate names)
+    - Geometry validation (valid FreeCAD sketch)
+
+    Args:
+        name: Unique sketch name (max 100 chars)
+        description: Human-readable description of what you're sketching
+        plane: Plane to sketch on. Options: "XY" (top view, looking down),
+               "XZ" (front view), "YZ" (side view). Defaults to "XY".
+
+    Returns:
+        OperationResult with success status, message, and affected object name
+
+    Example - Top view sketch:
+        >>> result = create_sketch(
+        ...     name="WasherProfile",
+        ...     plane="XY",
+        ...     description="Sketch for washer outer profile"
+        ... )
+        >>> print(result.success)
+        True
+        >>> print(result.affected_object)
+        'WasherProfile'
+
+    Example - Front view sketch:
+        >>> result = create_sketch(
+        ...     name="FrontProfile",
+        ...     plane="XZ",
+        ...     description="Front view profile"
+        ... )
+    """
+    operation = CreateSketch(
+        name=name,
+        plane=plane,  # type: ignore[arg-type]
+        description=description,
+    )
+    return execute_operation(operation)
+
+
+def add_sketch_circle(
+    sketch_name: str,
+    center: tuple[float, float],
+    radius: float,
+    description: str,
+) -> OperationResult:
+    """
+    Add circle to existing sketch.
+
+    Adds a circle at the specified center position with the specified radius
+    to an existing sketch. The sketch must exist in the active document.
+
+    All parameters validated before execution:
+    - Pydantic validation (types, ranges)
+    - Semantic validation (sketch exists, is valid sketch object)
+    - Geometry validation (valid circle geometry)
+
+    Args:
+        sketch_name: Name of sketch to add circle to (must exist)
+        center: Circle center (x, y) in mm within sketch coordinate system
+        radius: Circle radius in mm (range: 0.1 - 10000)
+        description: Human-readable description of the circle
+
+    Returns:
+        OperationResult with success status, message, and affected sketch name
+
+    Example - Center circle:
+        >>> result = add_sketch_circle(
+        ...     sketch_name="WasherProfile",
+        ...     center=(0, 0),
+        ...     radius=10,
+        ...     description="20mm diameter washer outer circle"
+        ... )
+        >>> print(result.success)
+        True
+
+    Example - Offset circle:
+        >>> result = add_sketch_circle(
+        ...     sketch_name="Pattern",
+        ...     center=(15, 20),
+        ...     radius=5,
+        ...     description="Hole at position (15, 20)"
+        ... )
+
+    Note:
+        Use list_objects() to find available sketch names.
+        Center coordinates are in the sketch's 2D coordinate system.
+    """
+    operation = AddSketchCircle(
+        sketch_name=sketch_name,
+        center=center,
+        radius=radius,
+        description=description,
     )
     return execute_operation(operation)

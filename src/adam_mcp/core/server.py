@@ -44,7 +44,9 @@ from adam_mcp.tools.document import (  # noqa: E402
     rollback_working_changes,
 )
 from adam_mcp.tools.execution import (  # noqa: E402
+    add_sketch_circle,
     create_cylinder,
+    create_sketch,
 )
 from adam_mcp.tools.query import (  # noqa: E402
     get_object_details,
@@ -316,6 +318,133 @@ def create_cylinder_tool(
         description=description,
         position=position,
         angle=angle,
+    )
+
+
+@mcp.tool()
+def create_sketch_tool(
+    name: str,
+    description: str,
+    plane: str = "XY",
+) -> OperationResult:
+    """
+    Create a 2D sketch on specified plane.
+
+    Creates an empty sketch on the specified plane at the origin. After creating
+    the sketch, use add_sketch_circle_tool to add circles or other geometry.
+    Sketches are the foundation for creating complex 2D profiles that can be
+    extruded (pad) or used to cut material (pocket).
+
+    All parameters are validated before execution using 3-layer validation:
+    1. Pydantic validation (types, valid plane names)
+    2. Semantic validation (duplicate names)
+    3. Geometry validation (valid FreeCAD sketch)
+
+    Args:
+        name: Unique sketch name (max 100 chars). Must not already exist in document.
+        description: Human-readable description of what you're sketching
+        plane: Plane to sketch on. Options: "XY" (top view, looking down),
+               "XZ" (front view), "YZ" (side view). Defaults to "XY".
+
+    Returns:
+        OperationResult with success status, message, and affected object name
+
+    Example - Basic sketch:
+        create_sketch_tool(
+            name="WasherProfile",
+            plane="XY",
+            description="Sketch for washer outer profile"
+        )
+
+    Example - Front view sketch:
+        create_sketch_tool(
+            name="FrontProfile",
+            plane="XZ",
+            description="Front view profile for extrusion"
+        )
+
+    Workflow:
+        1. Create sketch (this tool)
+        2. Add geometry with add_sketch_circle_tool, add_sketch_line_tool, etc.
+        3. Extrude sketch with create_pad_tool or cut with create_pocket_tool
+    """
+    return create_sketch(
+        name=name,
+        description=description,
+        plane=plane,
+    )
+
+
+@mcp.tool()
+def add_sketch_circle_tool(
+    sketch_name: str,
+    center: tuple[float, float],
+    radius: float,
+    description: str,
+) -> OperationResult:
+    """
+    Add circle to existing sketch.
+
+    Adds a circle at the specified center position with the specified radius
+    to an existing sketch. Multiple circles can be added to the same sketch
+    (e.g., for washers with outer circle and center hole).
+
+    All parameters are validated before execution using 3-layer validation:
+    1. Pydantic validation (types, ranges)
+    2. Semantic validation (sketch exists, is valid sketch object)
+    3. Geometry validation (valid circle geometry)
+
+    Args:
+        sketch_name: Name of sketch to add circle to (must exist in document)
+        center: Circle center (x, y) in mm within sketch coordinate system.
+                For circles at origin, use (0, 0).
+        radius: Circle radius in mm (range: 0.1 - 10000)
+        description: Human-readable description of the circle
+
+    Returns:
+        OperationResult with success status, message, and affected sketch name
+
+    Example - Center circle:
+        add_sketch_circle_tool(
+            sketch_name="WasherProfile",
+            center=(0, 0),
+            radius=10,
+            description="20mm diameter washer outer circle"
+        )
+
+    Example - Offset hole:
+        add_sketch_circle_tool(
+            sketch_name="Pattern",
+            center=(15, 20),
+            radius=5,
+            description="Mounting hole at (15, 20)"
+        )
+
+    Example - Washer with hole (two circles):
+        # First add outer circle
+        add_sketch_circle_tool(
+            sketch_name="Washer",
+            center=(0, 0),
+            radius=10,
+            description="Washer outer diameter 20mm"
+        )
+        # Then add inner hole
+        add_sketch_circle_tool(
+            sketch_name="Washer",
+            center=(0, 0),
+            radius=5.5,
+            description="Center hole 11mm diameter for M10 bolt"
+        )
+
+    Note:
+        Use list_objects_tool() to find available sketch names.
+        Center coordinates are in the sketch's 2D coordinate system.
+    """
+    return add_sketch_circle(
+        sketch_name=sketch_name,
+        center=center,
+        radius=radius,
+        description=description,
     )
 
 
