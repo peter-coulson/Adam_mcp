@@ -113,12 +113,19 @@ def setup_working_file(main_file_path: str) -> str:
     Returns:
         Path to working file
 
-    If main file exists, copies it to working file.
-    If main file doesn't exist, working file will be created when document is saved.
+    RESUME BY DEFAULT: If working file already exists, it is used as-is (preserves
+    uncommitted changes). Only copies main → work if working file doesn't exist.
+    This allows you to continue editing where you left off.
+
+    Use rollback_working_changes() to explicitly discard changes and reset from main.
     """
     work_file_path = get_work_file_path(main_file_path)
 
-    # Copy main → work if main exists
+    # Resume editing if work file already exists (NEVER overwrite)
+    if Path(work_file_path).exists():
+        return work_file_path
+
+    # Initialize work file from main if main exists
     if Path(main_file_path).exists():
         shutil.copy2(main_file_path, work_file_path)
 

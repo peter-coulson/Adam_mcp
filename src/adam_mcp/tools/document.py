@@ -4,7 +4,10 @@ Document management tools for adam-mcp
 Tools for creating, opening, and managing FreeCAD documents.
 """
 
+import os
+import platform
 import shutil
+import subprocess  # nosec B404 - Required for opening FreeCAD GUI on macOS/Linux
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -79,9 +82,13 @@ def open_document(path: str = Field(description="Path to .FCStd file to open")) 
     """
     Open existing FreeCAD document for editing.
 
-    Creates a working copy (.work file) for safe editing. The main file is only
-    modified when you call commit_changes(). All edits happen on the working file,
-    which is auto-saved every 5 operations for crash protection.
+    RESUME BY DEFAULT: If you've previously edited this file, your uncommitted changes
+    in the .work file are preserved and you continue where you left off. The .work file
+    is only created from the main file if it doesn't exist yet.
+
+    All edits happen on the working file (.work), which is auto-saved every 5 operations.
+    The main file is ONLY modified when you call commit_changes(). Use rollback_working_changes()
+    to discard uncommitted changes and reset from the main file.
 
     Args:
         path: Path to existing .FCStd file
@@ -129,9 +136,14 @@ def create_document(
     """
     Create new FreeCAD document and save to path.
 
-    Creates both the main file and working file. The main file is saved with the
-    initial blank state. All subsequent edits happen on the working file, which is
-    auto-saved every 5 operations. Use commit_changes() to update the main file.
+    RESUME BY DEFAULT: If a .work file already exists at this path, it will be opened
+    instead of creating a new document. This allows you to continue editing where you
+    left off. To start fresh, use rollback_working_changes() first.
+
+    Creates both the main file (.FCStd) and working file (.work). The main file is
+    saved with the initial blank state. All subsequent edits happen on the working
+    file, which is auto-saved every 5 operations. Use commit_changes() to update
+    the main file.
 
     Args:
         path: Path where document will be saved (e.g., ~/designs/bracket.FCStd)
@@ -273,3 +285,52 @@ def get_document_info() -> DocumentInfo:
         raise
     except AttributeError as e:
         raise RuntimeError(format_freecad_error(e)) from e
+
+
+def open_in_freecad_gui() -> str:
+    """
+    Open the working file in FreeCAD GUI for live preview.
+
+    Opens the active .work file in the FreeCAD desktop application so you can see
+    your changes in real-time as the MCP server modifies the file. The GUI will
+    show the current state of the working file (auto-saved every 5 operations).
+
+    To see updates, you may need to reload the document in the FreeCAD GUI (File > Reload).
+
+    Returns:
+        Success message with path to working file
+
+    Raises:
+        RuntimeError: If no document is open or FreeCAD app can't be found
+    """
+    work_file_path = get_active_work_file_path()
+
+    if not work_file_path:
+        raise RuntimeError(ERROR_NO_OPEN_DOC)
+
+    if not Path(work_file_path).exists():
+        raise RuntimeError(ERROR_FILE_NOT_FOUND.format(path=work_file_path))
+
+    try:
+        system = platform.system()
+
+        if system == "Darwin":  # macOS
+            # Use macOS 'open' command - standard way to open files with default app
+            subprocess.Popen(["open", "-a", "FreeCAD", work_file_path])  # nosec B603 B607
+        elif system == "Linux":
+            # Use freecad executable from PATH
+            subprocess.Popen(["freecad", work_file_path])  # nosec B603 B607
+        elif system == "Windows":
+            # Use os.startfile - Windows-native way to open files (avoids shell=True)
+            os.startfile(work_file_path)  # type: ignore[attr-defined]  # nosec B606 Windows-only
+        else:
+            raise RuntimeError(f"Unsupported platform: {system}")
+
+        return f"Opened working file in FreeCAD GUI: {work_file_path}"
+
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "FreeCAD application not found. Ensure FreeCAD is installed and in your PATH."
+        ) from e
+    except (OSError, subprocess.SubprocessError) as e:
+        raise RuntimeError(f"Failed to open FreeCAD GUI: {str(e)}") from e
