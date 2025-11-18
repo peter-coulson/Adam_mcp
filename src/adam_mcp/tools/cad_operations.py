@@ -64,8 +64,6 @@ def list_objects() -> ObjectListResponse:
 
         return ObjectListResponse(count=len(summaries), objects=summaries)
 
-    except RuntimeError:
-        raise
     except (AttributeError, TypeError) as e:
         raise RuntimeError(format_freecad_error(e, "Failed to list objects")) from e
 
@@ -138,7 +136,5 @@ def get_object_details(names: list[str]) -> ObjectDetailsResponse:
 
         return ObjectDetailsResponse(objects=details, not_found=not_found)
 
-    except RuntimeError:
-        raise
     except (AttributeError, TypeError) as e:
         raise RuntimeError(format_freecad_error(e, "Failed to get object details")) from e

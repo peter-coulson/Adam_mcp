@@ -291,8 +291,6 @@ def get_document_info() -> DocumentInfo:
         return DocumentInfo(
             name=doc.Name, object_count=len(doc.Objects), objects=[obj.Name for obj in doc.Objects]
         )
-    except RuntimeError:
-        raise
     except AttributeError as e:
         raise RuntimeError(format_freecad_error(e)) from e
 

@@ -117,6 +117,24 @@ def validate_paths(paths: FreeCADPaths) -> None:
 
 
 # ============================================================================
+# Environment Variable Helpers
+# ============================================================================
+
+
+def _append_to_env_var(var_name: str, new_value: str, separator: str) -> None:
+    """
+    Append value to environment variable with platform-specific separator
+
+    Args:
+        var_name: Environment variable name
+        new_value: Value to append (e.g., library path)
+        separator: Path separator (":" for Unix, ";" for Windows)
+    """
+    existing = os.environ.get(var_name, "")
+    os.environ[var_name] = f"{new_value}{separator}{existing}" if existing else new_value
+
+
+# ============================================================================
 # Environment Setup
 # ============================================================================
 
@@ -150,13 +168,9 @@ def setup_freecad_environment() -> None:
         if paths.frameworks:
             os.environ[ENV_VAR_MACOS_FRAMEWORK] = paths.frameworks
     elif system == "Linux":
-        # Append to existing LD_LIBRARY_PATH if present
-        existing = os.environ.get(ENV_VAR_LINUX_LIBRARY, "")
-        os.environ[ENV_VAR_LINUX_LIBRARY] = f"{paths.lib}:{existing}" if existing else paths.lib
+        _append_to_env_var(ENV_VAR_LINUX_LIBRARY, paths.lib, ":")
     elif system == "Windows":
-        # Append to PATH
-        existing = os.environ.get(ENV_VAR_WINDOWS_PATH, "")
-        os.environ[ENV_VAR_WINDOWS_PATH] = f"{paths.lib};{existing}" if existing else paths.lib
+        _append_to_env_var(ENV_VAR_WINDOWS_PATH, paths.lib, ";")
 
     # Success message
     print(MSG_SUCCESS)
