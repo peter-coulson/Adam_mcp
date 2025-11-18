@@ -8,31 +8,93 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 **Success:** "Create M10×40 hex bolt" → Accurate ISO bolt in seconds
 **Tech Stack:** Python 3.10+, FreeCAD, FastMCP, Pydantic
 
-**Tool Philosophy:** 3 generalized tools (not 10-20 specialized tools)
-1. `list_objects()` - Lightweight overview
-2. `get_object_details(names)` - Rich context on-demand
-3. `execute_cad_operation(code, description)` - All create/update/delete operations
+**Tool Philosophy:** 4 tools - discovery + structured operations (no Python fallback)
+1. `list_objects()` - Lightweight overview (implemented)
+2. `get_object_details(names)` - Rich context on-demand (implemented)
+3. `list_available_operations(category)` - Discover operations by category (planned)
+4. `execute_standard_operation(operation)` - Structured JSON operations with validation (planned)
 
 **Workflow Model:** Sequential single-object operations (matches CAD's dependency chain)
 
 ## Codebase Structure
 
+**Organized by domain and layer for scalability:**
+
 ```
 src/adam_mcp/
-  ├── __init__.py           # Package metadata
-  ├── server.py             # Entry point + tool registration
-  ├── constants.py          # All constants (dimensions, messages, paths)
-  ├── models.py             # Pydantic models for type-safe data
-  ├── utils.py              # Core utilities (validation, error formatting)
-  ├── working_files.py      # Working file infrastructure (auto-save, commit/rollback)
-  ├── freecad_env.py        # FreeCAD environment setup
-  └── tools/
-      ├── __init__.py
-      └── document.py       # Document management tools
-      # Future: cad_operations.py (list_objects, get_object_details, execute_cad_operation)
+  ├── core/                          # Infrastructure (stable)
+  │   ├── server.py                  # MCP server entry point + tool registration
+  │   ├── freecad_env.py             # FreeCAD environment setup
+  │   └── working_files.py           # Working file management (auto-save, commit/rollback)
+  │
+  ├── models/                        # Data models (Pydantic schemas)
+  │   ├── base.py                    # BaseOperation, base models
+  │   ├── responses.py               # Response models (OperationResult, DocumentInfo, etc.)
+  │   └── operations/                # Operation models by category
+  │       ├── primitives.py          # CreateBox, CreateCylinder, CreateSphere, etc.
+  │       ├── sketches.py            # CreateSketch, SketchGeometry, etc.
+  │       ├── features.py            # CreatePad, CreateFillet, CreateChamfer, etc.
+  │       ├── booleans.py            # CreateFusion, CreateCut, CreateCommon
+  │       └── modifications.py       # ModifyObject
+  │
+  ├── operations/                    # Business logic (operation implementation)
+  │   ├── dispatcher.py              # Route operation.action → handler
+  │   ├── handlers/                  # Handler implementations by category
+  │   │   ├── primitives.py          # execute_create_box, execute_create_cylinder, etc.
+  │   │   ├── sketches.py            # execute_create_sketch, etc.
+  │   │   ├── features.py            # execute_create_pad, execute_create_fillet, etc.
+  │   │   ├── booleans.py            # execute_create_fusion, etc.
+  │   │   └── modifications.py       # execute_modify_object
+  │   └── validators/                # Operation-specific validation
+  │       ├── geometry.py            # Geometric validation (fillet radius, edge checks)
+  │       └── references.py          # Object reference validation
+  │
+  ├── tools/                         # MCP tools (exposed to Claude via FastMCP)
+  │   ├── document.py                # Document management (open, create, commit, rollback)
+  │   ├── query.py                   # Query tools (list_objects, get_object_details) ✅
+  │   ├── discovery.py               # Discovery tool (list_available_operations)
+  │   └── execution.py               # Standard operation execution (execute_standard_operation)
+  │
+  ├── constants/                     # Configuration organized by domain
+  │   ├── dimensions.py              # Dimension constraints (MIN_DIMENSION_MM, etc.)
+  │   ├── messages.py                # Error/success message templates
+  │   ├── paths.py                   # File paths, environment variables
+  │   └── operations.py              # Operation categories, operation lists
+  │
+  ├── utils/                         # Helper functions
+  │   ├── errors.py                  # Error formatting
+  │   ├── validation.py              # General validation (validate_dimension, validate_document)
+  │   ├── paths.py                   # Path utilities (resolve_project_path, etc.)
+  │   └── freecad.py                 # FreeCAD utilities (get_version, get_active_document)
+  │
+  └── __init__.py                    # Package metadata
+
+tests/                               # Test structure mirrors src/
+  ├── conftest.py                    # Pytest fixtures
+  ├── unit/                          # Unit tests by module
+  │   ├── models/
+  │   ├── operations/
+  │   └── utils/
+  └── integration/                   # End-to-end workflow tests
+      ├── test_real_parts.py         # Test creating real engineering parts
+      └── test_workflows.py          # Test complete CAD workflows
 ```
 
-**Module Responsibilities:** See context/DECISIONS.md for detailed architecture
+**Module Responsibilities:**
+- **core/** - Infrastructure (server, FreeCAD setup, working files)
+- **models/** - Pydantic schemas for requests/responses
+- **operations/** - Business logic for CAD operations (handlers, validators, dispatcher)
+- **tools/** - MCP tools exposed to Claude (thin layer calling operations/)
+- **constants/** - All constants organized by domain
+- **utils/** - General-purpose helper functions
+
+**Design principles:**
+- Each file has single responsibility
+- Average file size: 50-250 LOC
+- Clear separation: data (models) → logic (operations) → interface (tools)
+- Test structure mirrors source structure
+
+**See MIGRATION_PLAN.md for migration from old flat structure**
 
 ## Software Principles
 
@@ -46,10 +108,11 @@ src/adam_mcp/
 
 ### Architecture Decisions
 - **Direct API integration** - No socket layers, direct FreeCAD imports
-- **Generalized tools** - 3 flexible tools that leverage Claude's intelligence, not 10-20 specialized hand-holding tools
+- **Structured operations only** - All operations use JSON with Pydantic validation (better errors, type safety, pre-execution validation)
+- **No Python fallback** - Forces proper operation design. Expand structured operations incrementally as needed (see context/DECISIONS.md for rationale)
+- **Operation boundary** - One operation = create/modify ONE object (can set multiple properties)
 - **Sequential operations** - One focused operation at a time (matches CAD dependency chain)
 - **Modular structure** - server.py is a slim entry point. Infrastructure extracted into focused modules
-- **Sandboxed execution** - FreeCAD scripts run in restricted namespace (FreeCAD modules only, no os/subprocess)
 
 ### Implementation Guidance
 
@@ -72,10 +135,10 @@ src/adam_mcp/
 - Catch and translate FreeCAD exceptions to user-friendly messages
 
 **Security:**
-- Sandboxed script execution for CAD operations (restricted namespace, FreeCAD only)
-- This is trusted execution environment (like Jupyter) - different from general exec() prohibition
-- Time limits (10s per operation)
-- Validation after execution (geometry checks)
+- Structured operations only (no script execution)
+- Pydantic validation before FreeCAD execution (catch errors early)
+- Geometry validation after execution (ensure valid shapes)
+- No sandboxing needed (no arbitrary code execution)
 
 **Constants & Configuration:**
 - ALL constants live in `constants.py` - single source of truth
@@ -86,8 +149,8 @@ src/adam_mcp/
 - Write focused, single-object operations (not batch scripts)
 - Sequential workflow (inspect → operate → inspect → operate)
 - Fetch details on-demand (token efficient)
-- Claude writes FreeCAD Python code directly (leverages core competency)
-- Tool implementations in `tools/` directory (document.py, cad_operations.py)
+- Structured JSON operations with rich validation and error messages
+- Tool implementations in `tools/` directory (document.py, query.py, discovery.py, execution.py)
 - FastMCP registration only in `server.py`
 
 ## Critical Workflow Rules
@@ -97,14 +160,14 @@ src/adam_mcp/
 
 ## Quality Checklist (before marking work complete)
 
-1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants.py`)
+1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants/`)
 2. ✓ Tool tested with real example (e.g., M10 bolt creation)?
 3. ✓ Error messages explain what went wrong + how to fix?
 4. ✓ Type hints on all functions? (mypy must pass)
 5. ✓ Tool docstrings clear for Claude to understand?
 6. ✓ Each module has one clear purpose?
-7. ✓ Sandboxing works (restricted namespace, time limits)?
-8. ✓ Validation catches geometry errors?
+7. ✓ Pydantic validation catches parameter errors before execution?
+8. ✓ Geometry validation catches invalid shapes after execution?
 9. ✓ Imports use TYPE_CHECKING for FreeCAD?
 
 ## Documentation

@@ -49,11 +49,11 @@ context/
 | File | Target | Hard Limit |
 |------|--------|------------|
 | README.md | 80 lines | 120 lines |
-| DECISIONS.md | 100 lines | 150 lines |
-| WORKFLOW.md | 150 lines | 250 lines |
-| **TOTAL** | **~350 lines** | **500 lines** |
+| DECISIONS.md | 120 lines | 180 lines |
+| WORKFLOW.md | 180 lines | 280 lines |
+| **TOTAL** | **~400 lines** | **580 lines** |
 
-**Rationale:** Context should be comprehensive but concise. Budget accounts for technical decisions, workflow architecture, and governance. Exceeding limits indicates bloat or content that belongs in code/comments.
+**Rationale:** Context should be comprehensive AND clear. Limits allow room for detailed explanations. Quality over arbitrary line counts. Exceeding limits indicates true bloat or content that belongs in code/comments.
 
 ### Content Principles
 

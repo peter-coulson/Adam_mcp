@@ -35,17 +35,9 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 **Decision:** Main file modified only on explicit commit. Working file auto-saved for crash protection.
 
-**Rationale:**
-- User control over what becomes "real"
-- Crash safety without losing uncommitted work
-- Corruption safety (validation before commit prevents bad geometry from reaching main file)
-- Familiar git-like mental model (work = staged, main = committed)
+**Rationale:** User control, crash/corruption safety, familiar git-like mental model (work = staged, main = committed)
 
-**Alternatives considered:**
-- **Timestamped checkpoints** - Creates `design.FCStd.2025-11-18-143022` for each checkpoint. Too complex, unclear which version to use, requires cleanup logic, limited history value (users have git for this)
-- **Unlimited version history** - Store every save as new version. Overkill for active session management, disk space overhead, users have git for long-term history
-- **Auto-commit every N operations** - Users lose control, can't experiment freely, might commit broken state before realizing mistake
-- **SQL-like transactions** - CAD isn't ACID, doesn't fit iterative workflow, rollback semantics unclear for geometric operations
+**Alternatives considered:** Timestamped checkpoints (too complex, users have git), unlimited version history (overkill for session), auto-commit (users lose control), SQL transactions (doesn't fit CAD workflow)
 
 ---
 
@@ -53,16 +45,9 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 **Decision:** `open_document()` and `create_document()` NEVER overwrite existing .work files. Always resume from existing work.
 
-**Rationale:**
-- Preserve uncommitted changes (expected behavior)
-- Safe to call open multiple times
-- Supports multiple chat sessions working on same project
-- Discarding changes requires deliberate action (rollback)
+**Rationale:** Preserve uncommitted changes, safe to call open multiple times, supports multiple sessions, deliberate discard via rollback
 
-**Alternatives considered:**
-- **Always overwrite .work on open** - DANGEROUS, loses uncommitted work, users expect resume behavior
-- **Prompt user on conflict** - Interrupts workflow, annoying for 90% of cases where user wants to resume
-- **Timestamped backups before overwrite** - Complex, unclear which backup to restore, cleanup overhead
+**Alternatives considered:** Always overwrite (dangerous, loses work), prompt on conflict (interrupts workflow), timestamped backups (too complex)
 
 ---
 
@@ -70,11 +55,7 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 **Decision:** User must call `commit_changes()`. System validates geometry before committing. Rejects commit if invalid.
 
-**Rationale:**
-- Critical safety: never corrupt main file
-- Fail-fast: catch problems before they're committed
-- User thinks before committing (intentional workflow)
-- Recoverable: can fix errors or rollback
+**Rationale:** Never corrupt main file, fail-fast validation, intentional workflow, recoverable (fix or rollback)
 
 **Validation checks:**
 1. Document recomputes successfully
@@ -82,10 +63,7 @@ open_document → edit (auto-save) → commit → [git commit main file]
 3. All shapes geometrically valid
 4. Document not empty
 
-**Alternatives considered:**
-- **No validation** - Unacceptable, main file could be corrupted, user loses work
-- **Auto-commit on close** - Might commit broken state before user notices error
-- **Warn but allow bad commits** - Defeats purpose of validation, corrupted main file still possible
+**Alternatives considered:** No validation (unacceptable, corruption risk), auto-commit on close (might commit broken state), warn but allow (defeats purpose)
 
 ---
 
@@ -93,17 +71,11 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 **Decision:** Working file auto-saves after every 5 operations (transparent to user).
 
-**Rationale:**
-- Crash protection (lose at most 4 operations)
-- Performance balance (not too slow, not too risky)
-- Operation-based vs time-based (won't save mid-operation)
+**Rationale:** Crash protection (max 4 ops lost), performance balance, operation-based (won't save mid-operation)
 
 **Configurable:** `AUTO_SAVE_INTERVAL = 5` in constants.py
 
-**Alternatives considered:**
-- **Save on every operation** - Too slow, excessive disk I/O, poor user experience
-- **Time-based (every 60s)** - Might save mid-operation, unpredictable behavior, race conditions
-- **Manual save only** - Users forget, lose work in crashes, defeats purpose of crash protection
+**Alternatives considered:** Every operation (too slow), time-based (unpredictable, race conditions), manual only (users forget, crash risk)
 
 ---
 
@@ -111,12 +83,7 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 **Decision:** `design.FCStd.work` sits next to `design.FCStd` by default.
 
-**Rationale:**
-- Simplicity (no configuration for 90% of users)
-- Visibility (user knows where work file is)
-- Natural cleanup (delete project folder = delete everything)
-- Git-friendly (one .gitignore rule: `*.work`)
-- Portability (move project = move everything together)
+**Rationale:** Simplicity (no config), visibility, natural cleanup, git-friendly (`*.work`), portability
 
 **Configuration Override:**
 
@@ -137,10 +104,7 @@ export ADAM_MCP_WORK_DIR="temp"
 - Separate disk/partition for working files (e.g., SSD for performance)
 - Network mount for shared workspace (multi-machine workflows)
 
-**Alternatives considered:**
-- **Hidden `.adam_mcp/` folder** - Extra directory level, less visible, harder to find for troubleshooting
-- **System temp (`/tmp`) as default** - OS might clean files unexpectedly, user can't find work easily
-- **Home directory (`~/.adam_mcp`)** - Multiple projects in one flat folder, naming conflicts, messy
+**Alternatives considered:** Hidden folder (less visible, harder troubleshooting), system temp (unexpected cleanup), home directory (naming conflicts, messy)
 
 ---
 
@@ -148,18 +112,11 @@ export ADAM_MCP_WORK_DIR="temp"
 
 **Decision:** `open_in_freecad_gui()` launches FreeCAD desktop app with .work file for live preview.
 
-**Rationale:**
-- Visual feedback (users can see their design as they build it)
-- Side-by-side workflow (Claude Code terminal + FreeCAD GUI)
-- Real-time iteration (make change → reload GUI → verify → continue)
-- Standard CAD workflow (matches how CAD users work: text editor + viewer)
+**Rationale:** Visual feedback, side-by-side workflow (terminal + GUI), real-time iteration, standard CAD workflow
 
 **Note:** Manual reload required (FreeCAD doesn't support auto-reload, would need custom plugin)
 
-**Alternatives considered:**
-- **Export to viewer format (STEP/STL)** - Extra conversion step, loses FreeCAD-specific features, file size overhead
-- **Embedded 3D viewer** - Complex, reinventing FreeCAD GUI, maintenance burden, feature parity impossible
-- **Auto-reload via file watching** - Requires FreeCAD plugin (out of scope), polling is unreliable, race conditions
+**Alternatives considered:** Export to viewer format (loses features, conversion overhead), embedded 3D viewer (reinventing GUI, high maintenance), auto-reload (requires plugin, unreliable)
 
 ---
 
@@ -167,11 +124,7 @@ export ADAM_MCP_WORK_DIR="temp"
 
 **Decision:** adam-mcp manages active session (main + work files). User manages long-term history (git).
 
-**Rationale:**
-- Professional assumption (CAD users already have git workflows)
-- Avoid duplication (don't reinvent version control)
-- Simpler system (focus on session safety, not decades of history)
-- Flexibility (user can use git, SVN, Dropbox, whatever)
+**Rationale:** Don't reinvent version control, focus on session safety (minutes-hours), user has git/VCS for long-term (days-years)
 
 **Clear boundary:**
 - adam-mcp: Protects active work session (minutes to hours)
