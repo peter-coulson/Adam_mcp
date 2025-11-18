@@ -1,0 +1,23 @@
+[project]
+name = "adam-mcp"
+version = "0.1.0"
+description = "FreeCAD MCP Server"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Note: FreeCAD must be installed separately via system package manager
+    # macOS: brew install freecad
+    # Linux: sudo apt-get install freecad (or equivalent)
+    "fastmcp>=1.0.0,<2.0.0",
+    "pydantic>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/adam_mcp"]
+
+[dependency-groups]
+dev = []
