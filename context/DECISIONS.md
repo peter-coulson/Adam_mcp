@@ -81,7 +81,7 @@ Key technical choices and rationale for adam-mcp.
 - `utils.py` - Core utilities (validation, error formatting)
 - `working_files.py` - Working file infrastructure
 - `freecad_env.py` - FreeCAD environment setup
-- `tools/` - Tool implementations (document.py, future: cad_operations.py)
+- `tools/` - Tool implementations (document.py, cad_operations.py)
 
 **Rationale:** Each module has one clear responsibility. Easier testing, organization, scalability.
 
@@ -207,6 +207,11 @@ Key technical choices and rationale for adam-mcp.
 - **Trigger:** Analyzed token budgets and use cases
 - **Action:** Focused on engineering-grade machine parts
 - **Result:** Clear success criteria, optimal Claude capability match
+
+### 2025-11-18: Query Tools Implementation
+- **Action:** Implemented `list_objects()` and `get_object_details()` in cad_operations.py
+- **Validation:** Tested on engineering parts (M3 nyloc nut with 16 objects, custom bracket)
+- **Result:** Architecture validated. Token-efficient on-demand pattern works. Dependency tracking accurate.
 
 ---
 

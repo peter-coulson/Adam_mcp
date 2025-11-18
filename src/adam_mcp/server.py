@@ -15,7 +15,13 @@ from fastmcp import FastMCP
 
 from adam_mcp.constants import SERVER_NAME
 from adam_mcp.freecad_env import setup_freecad_environment
-from adam_mcp.models import DocumentInfo, HealthCheckResponse, ProjectsList
+from adam_mcp.models import (
+    DocumentInfo,
+    HealthCheckResponse,
+    ObjectDetailsResponse,
+    ObjectListResponse,
+    ProjectsList,
+)
 
 # ============================================================================
 # FreeCAD Environment Setup (MUST be first)
@@ -26,6 +32,10 @@ setup_freecad_environment()
 # Now FreeCAD imports will work
 
 # Import tool implementations after FreeCAD is initialized
+from adam_mcp.tools.cad_operations import (  # noqa: E402
+    get_object_details,
+    list_objects,
+)
 from adam_mcp.tools.document import (  # noqa: E402
     commit_changes,
     create_document,
@@ -201,6 +211,50 @@ def list_projects_tool(directory: str | None = None) -> ProjectsList:
         RuntimeError: If directory doesn't exist or can't be read
     """
     return list_projects(directory)
+
+
+@mcp.tool()
+def list_objects_tool() -> ObjectListResponse:
+    """
+    List all objects in the active document.
+
+    Returns lightweight overview with object names, types, and dependencies.
+    Use this for quick inspection before operations. Token-efficient - only
+    returns names and types, not full properties.
+
+    For detailed properties of specific objects, use get_object_details_tool().
+
+    Returns:
+        List of object summaries with dependency information
+
+    Raises:
+        RuntimeError: If no active document exists
+    """
+    return list_objects()
+
+
+@mcp.tool()
+def get_object_details_tool(names: list[str]) -> ObjectDetailsResponse:
+    """
+    Get detailed information for specific objects.
+
+    Fetches rich context including all properties, values, and bidirectional
+    dependencies. Use this on-demand after list_objects_tool() to get details
+    for specific objects of interest.
+
+    Token-efficient pattern: list all objects (cheap) → filter what you need →
+    get details for those specific objects (expensive).
+
+    Args:
+        names: List of object names to fetch details for
+
+    Returns:
+        Detailed information for found objects, plus list of not found names
+
+    Raises:
+        RuntimeError: If no active document exists
+    """
+    return get_object_details(names)
 
 
 # ============================================================================

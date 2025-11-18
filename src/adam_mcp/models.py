@@ -44,3 +44,60 @@ class ProjectsList(BaseModel):
     directory: str = Field(description="Directory that was searched")
     projects: list[ProjectInfo] = Field(description="List of found projects")
     total_count: int = Field(ge=0, description="Total number of projects found")
+
+
+# ============================================================================
+# CAD Operation Models
+# ============================================================================
+
+
+class ObjectSummary(BaseModel):
+    """Lightweight object summary"""
+
+    name: str = Field(description="Object name (e.g., 'Sketch', 'Pad001')")
+    type: str = Field(
+        description="FreeCAD object type (e.g., 'Part::Box', 'Sketcher::SketchObject')"
+    )
+    label: str = Field(description="Human-readable label")
+    depends_on: list[str] = Field(
+        default_factory=list, description="Names of objects this depends on"
+    )
+
+
+class ObjectListResponse(BaseModel):
+    """Response from list_objects"""
+
+    count: int = Field(ge=0, description="Total number of objects")
+    objects: list[ObjectSummary] = Field(description="List of object summaries")
+
+
+class ObjectProperty(BaseModel):
+    """A single object property"""
+
+    name: str = Field(description="Property name")
+    value: str = Field(description="Property value (serialized as string)")
+    type: str = Field(description="Property type (e.g., 'float', 'Vector', 'str')")
+
+
+class ObjectDetail(BaseModel):
+    """Detailed information about an object"""
+
+    name: str = Field(description="Object name")
+    type: str = Field(description="FreeCAD object type")
+    label: str = Field(description="Human-readable label")
+    properties: list[ObjectProperty] = Field(description="Object properties and values")
+    depends_on: list[str] = Field(
+        default_factory=list, description="Names of objects this depends on"
+    )
+    depended_by: list[str] = Field(
+        default_factory=list, description="Names of objects that depend on this"
+    )
+
+
+class ObjectDetailsResponse(BaseModel):
+    """Response from get_object_details"""
+
+    objects: list[ObjectDetail] = Field(description="Detailed information for requested objects")
+    not_found: list[str] = Field(
+        default_factory=list, description="Names of objects that weren't found"
+    )
