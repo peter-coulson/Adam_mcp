@@ -14,24 +14,15 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from adam_mcp.constants import (
+from adam_mcp.constants.messages import (
     ERROR_FILE_NOT_FOUND,
     ERROR_NO_OPEN_DOC,
     ERROR_VALIDATION_FAILED,
     SUCCESS_CHANGES_COMMITTED,
     SUCCESS_CHANGES_ROLLED_BACK,
-    VALIDATE_BEFORE_COMMIT,
 )
-from adam_mcp.models import DocumentInfo, HealthCheckResponse, ProjectInfo, ProjectsList
-from adam_mcp.utils import (
-    ensure_projects_directory,
-    format_freecad_error,
-    get_active_document,
-    get_freecad_version,
-    resolve_project_path,
-    validate_document,
-)
-from adam_mcp.working_files import (
+from adam_mcp.constants.operations import VALIDATE_BEFORE_COMMIT
+from adam_mcp.core.working_files import (
     get_active_main_file_path,
     get_active_work_file_path,
     get_work_file_path,
@@ -39,6 +30,11 @@ from adam_mcp.working_files import (
     set_active_files,
     setup_working_file,
 )
+from adam_mcp.models.responses import DocumentInfo, HealthCheckResponse, ProjectInfo, ProjectsList
+from adam_mcp.utils.errors import format_freecad_error
+from adam_mcp.utils.freecad import get_active_document, get_freecad_version
+from adam_mcp.utils.paths import ensure_projects_directory, resolve_project_path
+from adam_mcp.utils.validation import validate_document
 
 if TYPE_CHECKING:
     import FreeCAD

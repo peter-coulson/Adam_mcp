@@ -68,16 +68,6 @@ src/adam_mcp/
   │   └── freecad.py                 # FreeCAD utilities (get_version, get_active_document)
   │
   └── __init__.py                    # Package metadata
-
-tests/                               # Test structure mirrors src/
-  ├── conftest.py                    # Pytest fixtures
-  ├── unit/                          # Unit tests by module
-  │   ├── models/
-  │   ├── operations/
-  │   └── utils/
-  └── integration/                   # End-to-end workflow tests
-      ├── test_real_parts.py         # Test creating real engineering parts
-      └── test_workflows.py          # Test complete CAD workflows
 ```
 
 **Module Responsibilities:**
@@ -92,9 +82,7 @@ tests/                               # Test structure mirrors src/
 - Each file has single responsibility
 - Average file size: 50-250 LOC
 - Clear separation: data (models) → logic (operations) → interface (tools)
-- Test structure mirrors source structure
-
-**See MIGRATION_PLAN.md for migration from old flat structure**
+- Manual validation via FreeCAD GUI (tests excluded for MVP speed-to-demo)
 
 ## Software Principles
 
@@ -161,7 +149,7 @@ tests/                               # Test structure mirrors src/
 ## Quality Checklist (before marking work complete)
 
 1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants/`)
-2. ✓ Tool tested with real example (e.g., M10 bolt creation)?
+2. ✓ Tool validated with real example via FreeCAD GUI (e.g., M10 bolt creation)?
 3. ✓ Error messages explain what went wrong + how to fix?
 4. ✓ Type hints on all functions? (mypy must pass)
 5. ✓ Tool docstrings clear for Claude to understand?

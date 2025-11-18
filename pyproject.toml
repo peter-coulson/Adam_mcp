@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-adam-mcp = "adam_mcp.server:main"
+adam-mcp = "adam_mcp.core.server:main"
 
 [project.optional-dependencies]
 dev = [

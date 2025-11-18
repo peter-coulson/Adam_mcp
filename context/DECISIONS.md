@@ -6,15 +6,81 @@ Key technical choices and rationale for adam-mcp.
 
 ## MVP Scope
 
-**Target:** Engineering-grade machine parts (bolts, nuts, flanges, gears)
-
-**Rationale:** Optimal Claude leverage (complex dimensional relationships), clear success criteria (ISO/DIN standards), real engineering value, comfortable token budget (~12-15K/part)
+**Target:** Demonstrate two key value propositions through M10 bolt + washer creation
 
 **Success criteria:**
-- "Create M10×40 hex bolt" → Accurate ISO bolt
-- "Create M10 hex nut" → Accurate ISO nut
-- "Create 100mm flange with 4× M8 holes" → Precise flange
+- **Creation from scratch:** M10×40 bolt using primitive operations
+- **Intelligent editing:** Claude inspects bolt, adds threads based on discovered dimensions
+- **Sketch-based workflow:** M10 washer using sketch operations
+- **Context discovery:** Claude verifies washer fits bolt through dimensional inspection
 - Graceful error handling with validation + recovery
+
+**Rationale:**
+- Original brief required "minimal flow demo" (sketch → extrude → fillet)
+- We chose to exceed requirements by demonstrating BOTH creation AND intelligent editing
+- M10 bolt + washer shows real engineering value (ISO standards, mating parts)
+- Showcases unique MCP value: Claude can **inspect, understand, and modify** designs
+- Two workflows (primitive vs sketch) show flexibility without bloat
+- See **DEMO_PLAN.md** for complete demonstration strategy
+
+---
+
+## Operation Selection: Demo-Driven Approach
+
+**Decision:** 8 operations chosen specifically for demo requirements
+
+**The 8 operations:**
+1. **CreateCylinder** - Bolt shaft/head primitives
+2. **CreateSketch** - Start 2D sketches (washer profile)
+3. **AddSketchCircle** - Circles in sketches (washer outer/inner)
+4. **CreatePad** - Extrude sketches (washer body)
+5. **CreatePocket** - Cut from solids (washer hole)
+6. **CreateFillet** - Round edges (bolt head, washer edges)
+7. **CreateThread** - Add ISO threads (bolt shaft)
+8. **CreateFusion** - Combine shapes (bolt shaft + head)
+
+**Why these specific operations:**
+
+### Demonstrates Two Workflows
+- **Primitive-based** (bolt): Fast creation using basic shapes → fusion → finishing
+- **Sketch-based** (washer): Precise 2D sketches → extrude/cut → finishing
+- Shows MCP server handles both paradigms without complexity
+
+### Demonstrates Intelligent Context Discovery
+- Query tools (`list_objects`, `get_object_details`) already implemented
+- Demo Part 2: Claude inspects bolt, discovers M10 dimensions, adds matching threads
+- Demo Part 4: Claude verifies washer hole (11mm) fits bolt shaft (10mm) with clearance
+- **Key insight:** This isn't just operation execution - Claude understands geometry
+
+### Minimal but Complete
+- **Additive:** CreateCylinder, CreatePad, CreateFusion
+- **Subtractive:** CreatePocket
+- **Finishing:** CreateFillet, CreateThread
+- **Foundation:** CreateSketch, AddSketchCircle
+- All essential operation types covered without redundancy
+
+### Real Engineering Value
+- ISO M10 standard parts (objective validation criteria)
+- Mating parts (bolt + washer) show practical workflow
+- Demonstrates engineering knowledge (clearances, standards, threads)
+
+**What we intentionally excluded from MVP:**
+- ❌ CreateBox - Not needed (primitive workflow covered by CreateCylinder)
+- ❌ AddSketchRectangle - Washer uses circles
+- ❌ AddSketchConstraint - Parametric design (advanced, post-MVP)
+- ❌ CreateChamfer - Redundant with CreateFillet
+- ❌ CreateCut - Boolean subtraction (fusion covers boolean demo)
+- ❌ Additional primitives (Sphere, Cone, Torus) - Not needed
+
+**Expansion strategy:**
+- Add operations as real needs arise (not speculatively)
+- Each new operation: ~50 LOC (model + handler + validation)
+- Structure scales to 20-30+ operations without refactoring
+
+**Result:**
+- Original plan: 12 operations
+- Demo-focused: 8 operations (33% less implementation)
+- Equally compelling demo, faster validation
 
 ---
 
@@ -41,7 +107,7 @@ See "Python Fallback - Explicitly Rejected" section below for detailed reasoning
 
 **Operation boundary:** One operation = create/modify ONE FreeCAD object. Can set multiple properties, but not create/modify multiple independent objects.
 
-**MVP scope:** ~12 core operations (sufficient for M10 bolt, nut, flange). Expand incrementally based on real needs. See context/OPERATIONS.md
+**MVP scope:** 8 core operations (sufficient for M10 bolt + washer demo). Expand incrementally based on real needs. See DEMO_PLAN.md and MVP_IMPLEMENTATION.md
 
 ---
 
@@ -108,6 +174,28 @@ See "Python Fallback - Explicitly Rejected" section below for detailed reasoning
 
 ---
 
+## Testing Strategy - Manual Validation Only
+
+**Decision:** No automated tests for MVP. Manual validation via FreeCAD GUI only.
+
+**Rationale:**
+- **Speed-to-demo prioritized** - Faster iteration on core functionality without test maintenance overhead
+- **Visual validation sufficient** - FreeCAD GUI provides immediate visual feedback (did bolt look correct?)
+- **Real-world testing more valuable** - Creating actual M10 bolt, nut, flange validates better than unit tests
+- **Simpler debugging** - Open .FCStd file in FreeCAD, inspect geometry directly
+- **Test complexity high** - Would need FreeCAD test fixtures, geometry comparison logic, test document management
+- **Small surface area** - 4 tools total, ~12 operations for MVP - manageable to validate manually
+
+**Validation approach:**
+1. Create test parts via MCP (M10 bolt, nut, flange)
+2. Open in FreeCAD GUI
+3. Verify dimensions, geometry, feature tree
+4. Check error handling with invalid inputs
+
+**Post-MVP consideration:** Add tests if production use reveals brittleness. For demo/prototype, manual validation trades test time for feature velocity.
+
+---
+
 ## Token Budget
 
 **Context window:** 200K tokens → ~50K max for CAD design context, ~70K for conversation/code, ~50K safety margin
@@ -161,9 +249,10 @@ Claude: execute_standard_operation({action: "create_fillet", ...})
 
 **Planned:**
 - `list_available_operations(category)` - Discover operations by category (~50 LOC)
-- `execute_standard_operation(operation)` - Execute 12 MVP JSON operations (~450 LOC)
+- `execute_standard_operation(operation)` - Execute 8 MVP JSON operations (~400 LOC)
 
 **Total MVP tools: 4**
+**Total MVP operations: 8** (demo-focused scope, see "Operation Selection" above)
 
 ---
 
@@ -229,6 +318,13 @@ Claude: execute_standard_operation({action: "create_fillet", ...})
 ---
 
 ## Refactoring History
+
+### 2025-11-18: Demo-Driven Scope Refinement (12 → 8 operations)
+- **Trigger:** Reviewing operation list against demo requirements. Asked: "What's the minimal set for a compelling demo?"
+- **Analysis:** Original plan had 12 operations including CreateBox, AddSketchConstraint, CreateChamfer, CreateCut. Analyzed which operations are essential for M10 bolt + washer demo.
+- **Decision:** Reduce to 8 operations focused on demo requirements
+- **Rationale:** Demo needs to showcase BOTH creation and intelligent editing. Bolt + washer demonstrates two workflows (primitive vs sketch), context discovery (inspection), and real engineering value (ISO standards, mating parts). Removed redundant operations (Chamfer ≈ Fillet, Cut not needed with Pocket, Box not needed with Cylinder, Constraint advanced feature).
+- **Result:** 8 operations (33% reduction), clearer demo narrative, faster implementation (~1985 LOC vs ~2250 LOC). Operations: CreateCylinder, CreateSketch, AddSketchCircle, CreatePad, CreatePocket, CreateFillet, CreateThread, CreateFusion. See DEMO_PLAN.md for complete strategy.
 
 ### 2025-11-18: Python Fallback - Explicitly Rejected
 - **Trigger:** During MVP planning review, questioned whether Python fallback adds value

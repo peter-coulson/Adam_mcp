@@ -1,24 +1,29 @@
 # MVP Implementation Plan
 
-Implementation plan for adam-mcp MVP (~12 core structured operations + lightweight discovery).
+Implementation plan for adam-mcp MVP (8 core structured operations + lightweight discovery).
+
+**IMPORTANT:** See **DEMO_PLAN.md** for complete demonstration strategy and rationale for operation selection.
 
 ---
 
 ## MVP Scope
 
-**Goal:** Enable creation of engineering-grade machine parts (bolts, nuts, flanges, gears)
+**Goal:** Demonstrate two key value propositions through M10 bolt + washer creation
 
 **Success Criteria:**
-- "Create M10×40 hex bolt" → Accurate ISO bolt in FreeCAD
-- "Create M10 hex nut" → Accurate ISO nut
-- "Create 100mm flange with 4× M8 holes" → Precise flange
+- **Creation from scratch:** M10×40 bolt using primitive operations (cylinder + fusion + fillet)
+- **Intelligent editing:** Claude inspects bolt, adds threads based on discovered dimensions
+- **Sketch-based workflow:** M10 washer using sketch operations (sketch + pad + pocket)
+- **Context discovery:** Claude verifies washer fits bolt through dimensional inspection
 - Clear error messages with recovery guidance
 
+**Design Rationale:** Operations chosen specifically to demonstrate both primitive-based and sketch-based workflows, plus intelligent context discovery. See DEMO_PLAN.md for detailed demonstration flow and context/DECISIONS.md for architectural rationale.
+
 **Tools:** 4 total
-1. `list_objects()` - List objects in document (implemented)
-2. `get_object_details(names)` - Get object details (implemented)
+1. `list_objects()` - List objects in document (✅ implemented)
+2. `get_object_details(names)` - Get object details (✅ implemented)
 3. `list_available_operations(category)` - Discover operations by category (planned)
-4. `execute_standard_operation(operation)` - Execute JSON operation with ~12 MVP ops (planned)
+4. `execute_standard_operation(operation)` - Execute JSON operation with 8 MVP ops (planned)
 
 ---
 
@@ -29,13 +34,15 @@ Implementation plan for adam-mcp MVP (~12 core structured operations + lightweig
 Before implementing MVP operations, migrate to the new scalable structure:
 1. Follow steps in **MIGRATION_PLAN.md** to reorganize codebase
 2. Verify existing tools (list_objects, get_object_details) work after migration
-3. Run tests to confirm no regressions
+3. Verify imports and run pre-commit hooks
 
 **New structure provides:**
 - Clear location for each operation category
 - ~100-150 LOC per file (manageable)
 - Easy to find and add operations
-- Test structure mirrors source
+- Modular organization ready for expansion
+
+**Note:** Tests deliberately excluded from MVP scope. Manual validation via FreeCAD GUI prioritized for speed-to-demo.
 
 ---
 
@@ -47,18 +54,18 @@ Before implementing MVP operations, migrate to the new scalable structure:
 
 **Key principle:** Make auto-generated JSON schema as helpful as possible through rich docstrings and field descriptions. Include usage examples in model docstrings.
 
-**MVP Operations (12 total):** Sufficient for M10 bolt, nut, flange success criteria
-- Primitives: Box (testing), Cylinder (shafts)
-- Sketches: CreateSketch, AddSketchCircle, AddSketchConstraint
-- Features: Pad, Pocket, Fillet, Chamfer, Thread
-- Booleans: Fusion, Cut
+**MVP Operations (8 total):** Minimal set for M10 bolt + washer demo (see DEMO_PLAN.md)
+- Primitives: Cylinder (bolt shaft/head)
+- Sketches: CreateSketch, AddSketchCircle (washer profile/hole)
+- Features: Pad, Pocket, Fillet, Thread (washer body/hole, rounding, bolt threads)
+- Booleans: Fusion (combine bolt shaft + head)
 
 **File locations:**
 - `models/base.py` - BaseOperation (~30 LOC)
-- `models/operations/primitives.py` - 2 primitive models (~40 LOC)
-- `models/operations/sketches.py` - 3 sketch models (~80 LOC)
-- `models/operations/features.py` - 5 feature models (~120 LOC)
-- `models/operations/booleans.py` - 2 boolean models (~30 LOC)
+- `models/operations/primitives.py` - 1 primitive model: CreateCylinder (~25 LOC)
+- `models/operations/sketches.py` - 2 sketch models: CreateSketch, AddSketchCircle (~50 LOC)
+- `models/operations/features.py` - 4 feature models: CreatePad, CreatePocket, CreateFillet, CreateThread (~110 LOC)
+- `models/operations/booleans.py` - 1 boolean model: CreateFusion (~20 LOC)
 
 #### 1.1 Base Models
 
@@ -75,51 +82,9 @@ class OperationResult(BaseModel):
     error_type: str | None = None  # 'validation', 'runtime', 'geometry'
 ```
 
-#### 1.2 Primitive Operations (2 models for MVP)
+#### 1.2 Primitive Operations (1 model for MVP)
 
 ```python
-class CreateBox(BaseOperation):
-    """
-    Create a rectangular box primitive.
-
-    Example:
-        {
-            "action": "create_box",
-            "name": "Box",
-            "length": 10,
-            "width": 20,
-            "height": 30,
-            "description": "Base block"
-        }
-    """
-    action: Literal["create_box"] = Field(
-        default="create_box",
-        description="Operation type (always 'create_box')"
-    )
-    name: str = Field(
-        max_length=100,
-        description="Object name (must be unique in document)"
-    )
-    length: float = Field(
-        gt=MIN_DIMENSION_MM,
-        lt=MAX_DIMENSION_MM,
-        description="Length in mm (X-axis, range: 0.1-10000)"
-    )
-    width: float = Field(
-        gt=MIN_DIMENSION_MM,
-        lt=MAX_DIMENSION_MM,
-        description="Width in mm (Y-axis, range: 0.1-10000)"
-    )
-    height: float = Field(
-        gt=MIN_DIMENSION_MM,
-        lt=MAX_DIMENSION_MM,
-        description="Height in mm (Z-axis, range: 0.1-10000)"
-    )
-    position: tuple[float, float, float] = Field(
-        default=(0, 0, 0),
-        description="Position (x, y, z) in mm. Optional, defaults to origin."
-    )
-
 class CreateCylinder(BaseOperation):
     """
     Create a cylindrical primitive.
@@ -164,37 +129,57 @@ class CreateCylinder(BaseOperation):
         description="Sweep angle in degrees (0-360). Default 360 for full cylinder."
     )
 
-# CreateSphere, CreateCone, CreateTorus - Post-MVP (add when needed)
+# CreateSphere, CreateCone, CreateTorus, CreateBox - Post-MVP (add when needed)
 ```
 
-#### 1.3 Sketch Operations (3 models for MVP)
+#### 1.3 Sketch Operations (2 models for MVP)
 
 ```python
 class CreateSketch(BaseOperation):
-    """Create a 2D sketch on specified plane"""
+    """
+    Create a 2D sketch on specified plane.
+
+    Example:
+        {
+            "action": "create_sketch",
+            "name": "WasherProfile",
+            "plane": "XY",
+            "description": "Sketch for washer outer profile"
+        }
+    """
     action: Literal["create_sketch"] = "create_sketch"
-    name: str
-    plane: Literal["XY", "XZ", "YZ"] = Field(default="XY")
+    name: str = Field(max_length=100, description="Sketch name (must be unique)")
+    plane: Literal["XY", "XZ", "YZ"] = Field(
+        default="XY",
+        description="Plane to sketch on. XY = top view, XZ = front view, YZ = side view"
+    )
 
 class AddSketchCircle(BaseOperation):
-    """Add circle to existing sketch"""
+    """
+    Add circle to existing sketch.
+
+    Example:
+        {
+            "action": "add_sketch_circle",
+            "sketch_name": "WasherProfile",
+            "center": [0, 0],
+            "radius": 10,
+            "description": "20mm diameter washer outer circle"
+        }
+    """
     action: Literal["add_sketch_circle"] = "add_sketch_circle"
-    sketch_name: str
-    center: tuple[float, float]
-    radius: float = Field(gt=0)
+    sketch_name: str = Field(description="Name of sketch to add circle to")
+    center: tuple[float, float] = Field(description="Circle center (x, y) in mm")
+    radius: float = Field(
+        gt=MIN_DIMENSION_MM,
+        lt=MAX_DIMENSION_MM,
+        description="Circle radius in mm (range: 0.1-10000)"
+    )
 
-class AddSketchConstraint(BaseOperation):
-    """Add constraint to sketch geometry"""
-    action: Literal["add_sketch_constraint"] = "add_sketch_constraint"
-    sketch_name: str
-    constraint_type: Literal["coincident", "horizontal", "vertical", "equal", "distance"]
-    elements: list[int] = Field(description="Geometry indices")
-    value: float | None = Field(default=None, description="Value for distance constraints")
-
-# AddSketchLine, AddSketchArc, AddSketchRectangle - Post-MVP (add when needed)
+# AddSketchLine, AddSketchArc, AddSketchRectangle, AddSketchConstraint - Post-MVP (add when needed)
 ```
 
-#### 1.4 PartDesign Operations (5 models for MVP)
+#### 1.4 PartDesign Operations (4 models for MVP)
 
 ```python
 class CreatePad(BaseOperation):
@@ -272,52 +257,107 @@ class CreateFillet(BaseOperation):
     )
 
 class CreatePocket(BaseOperation):
-    """Cut material from solid using sketch profile"""
-    # ... similar structure to CreatePad
+    """
+    Cut material from solid using sketch profile (PartDesign Pocket feature).
 
-class CreateChamfer(BaseOperation):
-    """Bevel edges with specified distance"""
-    # ... similar structure to CreateFillet
+    Example:
+        {
+            "action": "create_pocket",
+            "name": "Hole",
+            "sketch": "HoleProfile",
+            "length": 10,
+            "description": "Cut through 10mm"
+        }
+
+    Prerequisites: Sketch must be closed. Use for cutting holes, slots, etc.
+    """
+    action: Literal["create_pocket"] = "create_pocket"
+    name: str = Field(max_length=100, description="Name for the pocket feature")
+    sketch: str = Field(description="Name of sketch profile to cut (must be closed)")
+    length: float = Field(
+        gt=MIN_DIMENSION_MM,
+        lt=MAX_DIMENSION_MM,
+        description="Cut depth in mm (range: 0.1-10000)"
+    )
+    reversed: bool = Field(
+        default=False,
+        description="Cut in opposite direction. Default: false"
+    )
 
 class CreateThread(BaseOperation):
-    """Add threads to cylindrical surface"""
-    # ... parameters for thread specification
+    """
+    Add ISO metric threads to cylindrical surface.
 
-# CreateRevolution, CreateHole - Post-MVP (add when needed)
+    Example:
+        {
+            "action": "create_thread",
+            "name": "ThreadedBolt",
+            "base": "Bolt",
+            "face_index": 2,
+            "thread_type": "M10",
+            "length": 30,
+            "description": "Add M10 threads to bolt shaft"
+        }
+
+    Prerequisites: Base object must have cylindrical surface. Use get_object_details() to identify face indices.
+    """
+    action: Literal["create_thread"] = "create_thread"
+    name: str = Field(max_length=100, description="Name for threaded object")
+    base: str = Field(description="Name of object to add threads to")
+    face_index: int = Field(
+        ge=0,
+        description="Index of cylindrical face to thread (use get_object_details())"
+    )
+    thread_type: str = Field(
+        description="ISO thread designation (e.g., 'M10', 'M8', 'M6')"
+    )
+    length: float = Field(
+        gt=MIN_DIMENSION_MM,
+        lt=MAX_DIMENSION_MM,
+        description="Thread length in mm (range: 0.1-10000)"
+    )
+
+# CreateRevolution, CreateHole, CreateChamfer - Post-MVP (add when needed)
 ```
 
-#### 1.5 Boolean Operations (2 models for MVP)
+#### 1.5 Boolean Operations (1 model for MVP)
 
 ```python
 class CreateFusion(BaseOperation):
-    """Union of two shapes"""
+    """
+    Union of two shapes (boolean fusion).
+
+    Example:
+        {
+            "action": "create_fusion",
+            "name": "BoltBody",
+            "base": "Shaft",
+            "tool": "Head",
+            "description": "Combine shaft and head into single bolt body"
+        }
+
+    Prerequisites: Both base and tool objects must exist. Result is a single unified shape.
+    """
     action: Literal["create_fusion"] = "create_fusion"
-    name: str
-    base: str = Field(description="First object")
-    tool: str = Field(description="Second object")
+    name: str = Field(max_length=100, description="Name for fused object")
+    base: str = Field(description="First object name")
+    tool: str = Field(description="Second object name to fuse with base")
 
-class CreateCut(BaseOperation):
-    """Subtract tool from base"""
-    action: Literal["create_cut"] = "create_cut"
-    name: str
-    base: str = Field(description="Object to cut from")
-    tool: str = Field(description="Object to subtract")
-
-# CreateCommon (intersection) - Post-MVP (add when needed)
+# CreateCut, CreateCommon (intersection) - Post-MVP (add when needed)
 ```
 
 #### 1.6 Union Type
 
 ```python
 Operation = (
-    CreateBox | CreateCylinder |
-    CreateSketch | AddSketchCircle | AddSketchConstraint |
-    CreatePad | CreatePocket | CreateFillet | CreateChamfer | CreateThread |
-    CreateFusion | CreateCut
+    CreateCylinder |
+    CreateSketch | AddSketchCircle |
+    CreatePad | CreatePocket | CreateFillet | CreateThread |
+    CreateFusion
 )
 ```
 
-**Deliverable:** 12 MVP operation models with validation and rich descriptions
+**Deliverable:** 8 MVP operation models with validation and rich descriptions
 
 **Post-MVP expansions:**
 - Additional primitives (Sphere, Cone, Torus)
@@ -551,7 +591,7 @@ def execute_standard_operation(operation: Operation) -> OperationResult:
         )
 ```
 
-**Deliverable:** 12 MVP operations executable with 3-layer validation
+**Deliverable:** 8 MVP operations executable with 3-layer validation
 
 ---
 
@@ -618,14 +658,14 @@ def execute_standard_operation_tool(operation: Operation) -> OperationResult:
     """
     Execute a standard CAD operation (create/modify one object).
 
-    Supports 12 MVP operations for engineering parts (M10 bolt, nut, flange):
-    - Primitives: box, cylinder
-    - Sketches: create sketch, add circle, add constraints
-    - Features: pad, pocket, fillet, chamfer, thread
-    - Booleans: fusion, cut
+    Supports 8 MVP operations for M10 bolt + washer demo (see DEMO_PLAN.md):
+    - Primitives: cylinder
+    - Sketches: create sketch, add circle
+    - Features: pad, pocket, fillet, thread
+    - Booleans: fusion
 
     All parameters validated before execution. One operation affects one object.
-    Expand operations incrementally as needs arise.
+    See DEMO_PLAN.md for demonstration strategy and context/DECISIONS.md for architectural rationale.
     """
     return execute_standard_operation(operation)
 ```
@@ -669,37 +709,46 @@ SUCCESS_OPERATION_CUSTOM = "Successfully executed custom operation: {description
 
 Before marking MVP complete:
 
-- [ ] 12 MVP operation models defined with Pydantic validation
-- [ ] 12 MVP operation handlers implemented with 3-layer validation
+- [ ] 8 MVP operation models defined with Pydantic validation
+- [ ] 8 MVP operation handlers implemented with 3-layer validation
 - [ ] 4 tools registered with FastMCP
 - [ ] All constants extracted to constants/ (organized by domain)
 - [ ] Pre-commit passes (mypy, ruff, formatting)
 - [ ] Error messages explain what + how to fix
-- [ ] Can create M10 bolt (success criteria validation)
-- [ ] Can create M10 nut (success criteria validation)
-- [ ] Can create flange (success criteria validation)
-- [ ] Documentation updated (context/OPERATIONS.md, context/DECISIONS.md)
+- [ ] Can create M10 bolt from scratch (primitive workflow)
+- [ ] Claude can inspect bolt and add threads (intelligent editing)
+- [ ] Can create M10 washer (sketch workflow)
+- [ ] Claude can verify washer fits bolt (context discovery)
+- [ ] Demo script validated (see DEMO_PLAN.md)
+- [ ] Documentation updated (DEMO_PLAN.md, context/DECISIONS.md)
 
 ---
 
 ## Estimated LOC by Module
 
-**MVP (12 operations):**
+**MVP (8 operations):**
 
 | Module | Files | Est. LOC | Notes |
 |--------|-------|----------|-------|
-| **models/** | 6 | ~300 | 12 operation models with rich descriptions |
-| **operations/** | 6 | ~600 | Handlers, validators, dispatcher |
+| **models/** | 6 | ~235 | 8 operation models with rich descriptions |
+| **operations/** | 6 | ~450 | Handlers, validators, dispatcher (reduced scope) |
 | **tools/** | 4 | ~350 | Tool implementations (query, discovery, execution, document) |
-| **constants/** | 4 | ~250 | Organized constants |
+| **constants/** | 4 | ~200 | Organized constants |
 | **core/** | 3 | ~450 | Infrastructure (server, freecad, working_files) |
 | **utils/** | 4 | ~300 | Utilities |
-| **Total** | **27** | **~2250** | Average ~83 LOC/file |
+| **Total** | **27** | **~1985** | Average ~74 LOC/file |
+
+**Rationale for reduced scope:**
+- Focus on demo requirements (M10 bolt + washer)
+- Validates both primitive-based and sketch-based workflows
+- Demonstrates intelligent context discovery
+- Faster implementation, cleaner validation
+- See DEMO_PLAN.md for demonstration strategy
 
 **Post-MVP expansions (incremental):**
 - Each new operation: ~50 LOC (model + handler + validation)
 - Structure scales well - add to existing files
-- Estimated final: ~4000-5000 LOC for comprehensive coverage
+- Estimated final: ~4000-5000 LOC for comprehensive CAD coverage
 
 ---
 

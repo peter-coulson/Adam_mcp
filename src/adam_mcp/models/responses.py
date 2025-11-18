@@ -1,13 +1,9 @@
-"""
-Pydantic models for adam-mcp
-
-Type-safe data models for request/response validation.
-"""
+"""Response models for adam-mcp tools"""
 
 from pydantic import BaseModel, Field
 
 # ============================================================================
-# Response Models
+# Health Check & Document Management
 # ============================================================================
 
 
@@ -47,7 +43,7 @@ class ProjectsList(BaseModel):
 
 
 # ============================================================================
-# CAD Operation Models
+# CAD Query Models
 # ============================================================================
 
 
@@ -101,3 +97,30 @@ class ObjectDetailsResponse(BaseModel):
     not_found: list[str] = Field(
         default_factory=list, description="Names of objects that weren't found"
     )
+
+
+# ============================================================================
+# Operation Results
+# ============================================================================
+
+
+class OperationResult(BaseModel):
+    """Result from CAD operation execution"""
+
+    success: bool = Field(description="Whether the operation succeeded")
+    message: str = Field(description="Human-readable message explaining the result")
+    affected_object: str | None = Field(
+        default=None, description="Name of the object created or modified"
+    )
+    error_type: str | None = Field(
+        default=None, description="Error category: 'validation', 'runtime', 'geometry'"
+    )
+
+
+class OperationCatalog(BaseModel):
+    """Catalog of available operations"""
+
+    operations_by_category: dict[str, list[str]] = Field(
+        description="Operation names organized by category"
+    )
+    total_count: int = Field(ge=0, description="Total number of operations")

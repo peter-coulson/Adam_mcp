@@ -119,7 +119,7 @@ The MCP server is configured for this project via `.mcp.json`:
   "mcpServers": {
     "adam-mcp": {
       "command": "uv",
-      "args": ["run", "fastmcp", "run", "src/adam_mcp/server.py"],
+      "args": ["run", "fastmcp", "run", "src/adam_mcp/core/server.py"],
       "env": {
         "PYTHONPATH": "src"
       }
@@ -167,13 +167,13 @@ This makes it easy to work with projects without typing full paths every time.
 To run the server manually for testing (FastMCP CLI - gold standard):
 
 ```bash
-PYTHONPATH=src uv run fastmcp run src/adam_mcp/server.py
+PYTHONPATH=src uv run fastmcp run src/adam_mcp/core/server.py
 ```
 
 For development with debug logging and MCP Inspector:
 
 ```bash
-PYTHONPATH=src uv run fastmcp dev src/adam_mcp/server.py
+PYTHONPATH=src uv run fastmcp dev src/adam_mcp/core/server.py
 ```
 
 The `PYTHONPATH=src` ensures the package can be imported correctly with the src layout.
@@ -209,14 +209,30 @@ adam_mcp/
 ├── src/
 │   └── adam_mcp/
 │       ├── __init__.py          # Package metadata
-│       ├── server.py            # FastMCP server entry point
-│       ├── constants.py         # All constants (single source of truth)
-│       ├── models.py            # Pydantic models for type safety
-│       ├── utils.py             # Core utilities (validation, path resolution)
-│       ├── working_files.py     # Working file infrastructure
-│       ├── freecad_env.py       # FreeCAD environment setup
-│       └── tools/
-│           └── document.py      # Document management tools
+│       ├── core/                # Infrastructure
+│       │   ├── server.py        # FastMCP server entry point
+│       │   ├── freecad_env.py   # FreeCAD environment setup
+│       │   └── working_files.py # Working file infrastructure
+│       ├── constants/            # Configuration organized by domain
+│       │   ├── dimensions.py    # Dimension constraints
+│       │   ├── messages.py      # Error/success messages
+│       │   ├── paths.py         # File paths
+│       │   └── operations.py    # Operation categories
+│       ├── models/              # Pydantic models for type safety
+│       │   ├── base.py          # Base operation models
+│       │   ├── responses.py     # Response models
+│       │   └── operations/      # Operation models by category
+│       ├── operations/          # Business logic (handlers, validators)
+│       ├── tools/               # MCP tools
+│       │   ├── document.py      # Document management
+│       │   ├── query.py         # Query tools (list/details)
+│       │   ├── discovery.py     # List available operations
+│       │   └── execution.py     # Execute operations
+│       └── utils/               # Helper functions
+│           ├── errors.py        # Error formatting
+│           ├── validation.py    # Validation utilities
+│           ├── paths.py         # Path utilities
+│           └── freecad.py       # FreeCAD utilities
 ├── dev_projects/                # Local development CAD files (gitignored)
 ├── .venv/                       # UV virtual environment
 ├── .envrc                       # Direnv config (auto-activation + dev settings)

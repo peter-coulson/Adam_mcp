@@ -6,7 +6,7 @@
         "run",
         "fastmcp",
         "run",
-        "src/adam_mcp/server.py"
+        "src/adam_mcp/core/server.py"
       ],
       "env": {
         "PYTHONPATH": "src"

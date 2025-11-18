@@ -9,15 +9,23 @@ import sys
 from pathlib import Path
 from typing import NamedTuple
 
-from adam_mcp.constants import (
+from adam_mcp.constants.messages import (
+    ERROR_INSTALL_INSTRUCTIONS,
+    ERROR_PATH_NOT_FOUND,
+    ERROR_PLATFORM_UNSUPPORTED,
+    MSG_ENV_OVERRIDE,
+    MSG_EXTENSIONS_PATH,
+    MSG_LIBRARY_PATH,
+    MSG_MODULES_PATH,
+    MSG_PLATFORM,
+    MSG_SUCCESS,
+)
+from adam_mcp.constants.paths import (
     ENV_VAR_FREECAD_PATH,
     ENV_VAR_LINUX_LIBRARY,
     ENV_VAR_MACOS_FRAMEWORK,
     ENV_VAR_MACOS_LIBRARY,
     ENV_VAR_WINDOWS_PATH,
-    ERROR_INSTALL_INSTRUCTIONS,
-    ERROR_PATH_NOT_FOUND,
-    ERROR_PLATFORM_UNSUPPORTED,
     LINUX_EXT,
     LINUX_LIB,
     LINUX_MOD,
@@ -25,12 +33,6 @@ from adam_mcp.constants import (
     MACOS_FRAMEWORKS,
     MACOS_LIB,
     MACOS_MOD,
-    MSG_ENV_OVERRIDE,
-    MSG_EXTENSIONS_PATH,
-    MSG_LIBRARY_PATH,
-    MSG_MODULES_PATH,
-    MSG_PLATFORM,
-    MSG_SUCCESS,
     WINDOWS_EXT,
     WINDOWS_LIB,
     WINDOWS_MOD,

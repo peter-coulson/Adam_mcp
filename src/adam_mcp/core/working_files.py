@@ -12,7 +12,7 @@ from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from adam_mcp.constants import AUTO_SAVE_INTERVAL, WORK_DIR_ENV_VAR, WORK_FILE_SUFFIX
+from adam_mcp.constants.operations import AUTO_SAVE_INTERVAL, WORK_DIR_ENV_VAR, WORK_FILE_SUFFIX
 
 if TYPE_CHECKING:
     import FreeCAD

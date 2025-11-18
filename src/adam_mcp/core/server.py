@@ -13,9 +13,9 @@ Pattern:
 
 from fastmcp import FastMCP
 
-from adam_mcp.constants import SERVER_NAME
-from adam_mcp.freecad_env import setup_freecad_environment
-from adam_mcp.models import (
+from adam_mcp.constants.operations import SERVER_NAME
+from adam_mcp.core.freecad_env import setup_freecad_environment
+from adam_mcp.models.responses import (
     DocumentInfo,
     HealthCheckResponse,
     ObjectDetailsResponse,
@@ -32,10 +32,6 @@ setup_freecad_environment()
 # Now FreeCAD imports will work
 
 # Import tool implementations after FreeCAD is initialized
-from adam_mcp.tools.cad_operations import (  # noqa: E402
-    get_object_details,
-    list_objects,
-)
 from adam_mcp.tools.document import (  # noqa: E402
     commit_changes,
     create_document,
@@ -45,6 +41,10 @@ from adam_mcp.tools.document import (  # noqa: E402
     open_document,
     open_in_freecad_gui,
     rollback_working_changes,
+)
+from adam_mcp.tools.query import (  # noqa: E402
+    get_object_details,
+    list_objects,
 )
 
 # ============================================================================

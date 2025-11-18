@@ -1,19 +1,20 @@
 """
-CAD operation tools for adam-mcp
+Query tools for inspecting CAD documents
 
-Tools for inspecting and querying CAD objects in FreeCAD documents.
+Tools for listing objects and getting detailed object information.
 """
 
 from typing import TYPE_CHECKING
 
-from adam_mcp.models import (
+from adam_mcp.models.responses import (
     ObjectDetail,
     ObjectDetailsResponse,
     ObjectListResponse,
     ObjectProperty,
     ObjectSummary,
 )
-from adam_mcp.utils import format_freecad_error, get_active_document
+from adam_mcp.utils.errors import format_freecad_error
+from adam_mcp.utils.freecad import get_active_document
 
 if TYPE_CHECKING:
     import FreeCAD
