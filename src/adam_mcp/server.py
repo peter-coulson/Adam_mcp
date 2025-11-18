@@ -15,7 +15,7 @@ from fastmcp import FastMCP
 
 from adam_mcp.constants import SERVER_NAME
 from adam_mcp.freecad_env import setup_freecad_environment
-from adam_mcp.models import DocumentInfo, HealthCheckResponse
+from adam_mcp.models import DocumentInfo, HealthCheckResponse, ProjectsList
 
 # ============================================================================
 # FreeCAD Environment Setup (MUST be first)
@@ -31,6 +31,7 @@ from adam_mcp.tools.document import (  # noqa: E402
     create_document,
     get_document_info,
     health_check,
+    list_projects,
     open_document,
     open_in_freecad_gui,
     rollback_working_changes,
@@ -178,6 +179,28 @@ def open_in_freecad_gui_tool() -> str:
         RuntimeError: If no document is open or FreeCAD app can't be found
     """
     return open_in_freecad_gui()
+
+
+@mcp.tool()
+def list_projects_tool(directory: str | None = None) -> ProjectsList:
+    """
+    List FreeCAD projects in a directory.
+
+    Searches for .FCStd files and returns information about each project including
+    file size, last modified time, and whether it has uncommitted changes (working file).
+    Results are sorted by most recently modified first.
+
+    Args:
+        directory: Optional directory path to search. If not provided, searches the
+                   default projects directory (~/freecad_projects)
+
+    Returns:
+        List of projects with metadata (name, path, size, modified time, working file status)
+
+    Raises:
+        RuntimeError: If directory doesn't exist or can't be read
+    """
+    return list_projects(directory)
 
 
 # ============================================================================

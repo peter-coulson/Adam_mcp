@@ -8,6 +8,7 @@ import os
 import platform
 import shutil
 import subprocess  # nosec B404 - Required for opening FreeCAD GUI on macOS/Linux
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -21,16 +22,19 @@ from adam_mcp.constants import (
     SUCCESS_CHANGES_ROLLED_BACK,
     VALIDATE_BEFORE_COMMIT,
 )
-from adam_mcp.models import DocumentInfo, HealthCheckResponse
+from adam_mcp.models import DocumentInfo, HealthCheckResponse, ProjectInfo, ProjectsList
 from adam_mcp.utils import (
+    ensure_projects_directory,
     format_freecad_error,
     get_active_document,
     get_freecad_version,
+    resolve_project_path,
     validate_document,
 )
 from adam_mcp.working_files import (
     get_active_main_file_path,
     get_active_work_file_path,
+    get_work_file_path,
     reset_operation_counter,
     set_active_files,
     setup_working_file,
@@ -91,7 +95,10 @@ def open_document(path: str = Field(description="Path to .FCStd file to open")) 
     to discard uncommitted changes and reset from the main file.
 
     Args:
-        path: Path to existing .FCStd file
+        path: Path to existing .FCStd file. Can be:
+            - Just filename: "bracket.FCStd" → opens from ~/freecad_projects/
+            - Relative path: "designs/bracket.FCStd" → ~/freecad_projects/designs/
+            - Absolute path: "~/custom/bracket.FCStd" → exact location specified
 
     Returns:
         Information about the opened document
@@ -100,8 +107,8 @@ def open_document(path: str = Field(description="Path to .FCStd file to open")) 
         FileNotFoundError: If file doesn't exist
         RuntimeError: If file can't be opened
     """
-    # Expand user path (~/)
-    main_file_path = str(Path(path).expanduser().resolve())
+    # Resolve path (relative paths go to default projects directory)
+    main_file_path = resolve_project_path(path)
 
     # Validate main file exists
     if not Path(main_file_path).exists():
@@ -146,7 +153,10 @@ def create_document(
     the main file.
 
     Args:
-        path: Path where document will be saved (e.g., ~/designs/bracket.FCStd)
+        path: Path where document will be saved. Can be:
+            - Just filename: "bracket.FCStd" → saved to ~/freecad_projects/
+            - Relative path: "designs/bracket.FCStd" → ~/freecad_projects/designs/
+            - Absolute path: "~/custom/bracket.FCStd" → exact location specified
 
     Returns:
         Information about the created document
@@ -154,8 +164,8 @@ def create_document(
     Raises:
         RuntimeError: If document can't be created or saved
     """
-    # Expand user path (~/)
-    main_file_path = str(Path(path).expanduser().resolve())
+    # Resolve path (relative paths go to default projects directory)
+    main_file_path = resolve_project_path(path)
 
     # Ensure parent directory exists
     Path(main_file_path).parent.mkdir(parents=True, exist_ok=True)
@@ -334,3 +344,63 @@ def open_in_freecad_gui() -> str:
         ) from e
     except (OSError, subprocess.SubprocessError) as e:
         raise RuntimeError(f"Failed to open FreeCAD GUI: {str(e)}") from e
+
+
+def list_projects(directory: str | None = None) -> ProjectsList:
+    """
+    List FreeCAD projects in a directory.
+
+    Searches for .FCStd files and returns information about each project including
+    whether it has uncommitted changes (working file exists).
+
+    Args:
+        directory: Optional directory path. Defaults to DEFAULT_PROJECTS_DIR (~freecad_projects)
+
+    Returns:
+        List of projects with metadata (name, path, size, modified time, working file status)
+
+    Raises:
+        RuntimeError: If directory doesn't exist or can't be read
+    """
+    # Determine search directory
+    if directory is None:
+        search_dir = ensure_projects_directory()
+    else:
+        search_dir = Path(directory).expanduser().resolve()
+        if not search_dir.exists():
+            raise RuntimeError(f"Directory not found: {directory}")
+        if not search_dir.is_dir():
+            raise RuntimeError(f"Not a directory: {directory}")
+
+    try:
+        # Find all .FCStd files
+        project_files = sorted(
+            search_dir.glob("**/*.FCStd"), key=lambda p: p.stat().st_mtime, reverse=True
+        )
+
+        # Build project info list
+        projects: list[ProjectInfo] = []
+        for project_file in project_files:
+            stat = project_file.stat()
+
+            # Check if working file exists
+            work_file_path = get_work_file_path(str(project_file))
+            has_working_file = Path(work_file_path).exists()
+
+            # Format modified time as ISO
+            modified_time = datetime.fromtimestamp(stat.st_mtime).isoformat()
+
+            projects.append(
+                ProjectInfo(
+                    name=project_file.name,
+                    path=str(project_file),
+                    size_bytes=stat.st_size,
+                    modified_time=modified_time,
+                    has_working_file=has_working_file,
+                )
+            )
+
+        return ProjectsList(directory=str(search_dir), projects=projects, total_count=len(projects))
+
+    except (OSError, PermissionError) as e:
+        raise RuntimeError(f"Failed to list projects in {search_dir}: {str(e)}") from e

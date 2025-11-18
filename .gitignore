@@ -40,3 +40,7 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Development CAD projects
+dev_projects/
+*.work

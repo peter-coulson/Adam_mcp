@@ -5,6 +5,8 @@ All configuration values, defaults, constraints, and message templates.
 Single source of truth for magic numbers and strings.
 """
 
+import os
+
 # ============================================================================
 # Server Metadata
 # ============================================================================
@@ -19,6 +21,9 @@ SERVER_VERSION = "0.1.0"
 DEFAULT_DOCUMENT_NAME = "CAD_Design"
 DEFAULT_SKETCH_NAME = "Sketch"
 MAX_DOCUMENT_NAME_LENGTH = 100
+
+# Default directory for CAD projects (configurable via environment variable)
+DEFAULT_PROJECTS_DIR = os.environ.get("ADAM_MCP_DEFAULT_DIR", "~/freecad_projects")
 
 # ============================================================================
 # Dimension Constraints (mm)

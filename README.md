@@ -11,7 +11,10 @@ FreeCAD MCP Server - A Model Context Protocol server for programmatic CAD operat
 **Implemented:**
 - ✓ FreeCAD Python API integration
 - ✓ FastMCP server with type-safe operations
-- ✓ Document management (create, query)
+- ✓ Document management (create, open, commit, rollback)
+- ✓ Default projects directory with environment variable configuration
+- ✓ Project listing and discovery
+- ✓ Working file system with auto-save
 - ✓ Health monitoring
 
 **Planned:**
@@ -61,19 +64,30 @@ The project uses an **explicit environment configuration** approach:
 - Clean, visible configuration (no hidden site-packages modifications)
 - Call `setup_freecad_environment()` before importing FreeCAD
 
-### Custom FreeCAD Installation
+### Environment Variables
+
+**Custom FreeCAD Installation:**
 
 If FreeCAD is installed in a non-standard location, set the `FREECAD_PATH` environment variable:
 
 ```bash
 export FREECAD_PATH="/path/to/your/freecad/installation"
-# Then run your script
-python freecad_env.py
 ```
 
-Or add it to your `.env` file:
+**Default Projects Directory:**
+
+By default, projects are saved to `~/freecad_projects`. You can customize this:
+
+```bash
+export ADAM_MCP_DEFAULT_DIR="~/my_cad_projects"
+```
+
+For development, the `.envrc` file automatically sets this to `./dev_projects` when you're in the project directory.
+
+Add these to your `.env` file to make them permanent:
 ```
 FREECAD_PATH=/path/to/your/freecad/installation
+ADAM_MCP_DEFAULT_DIR=~/my_cad_projects
 ```
 
 ## Testing the Setup
@@ -121,9 +135,32 @@ This configuration:
 - ✓ Checked into version control for team sharing
 
 **Available Tools:**
-- `health_check` - Verify server and FreeCAD integration status
-- `create_document` - Create or reuse a FreeCAD document
-- `get_document_info` - Query active document details
+- `health_check_tool` - Verify server and FreeCAD integration status
+- `create_document_tool` - Create a new FreeCAD document (or resume existing working file)
+- `open_document_tool` - Open an existing FreeCAD document for editing
+- `get_document_info_tool` - Query active document details (object count, names)
+- `commit_changes_tool` - Save working file changes to main file (validates before commit)
+- `rollback_working_changes_tool` - Discard uncommitted changes and reset from main file
+- `list_projects_tool` - List all FreeCAD projects in a directory (defaults to projects directory)
+- `open_in_freecad_gui_tool` - Open the working file in FreeCAD desktop application for live preview
+
+**Document Management Workflow:**
+
+The server uses a **working file system** for safe editing:
+
+1. **Create or open** a document - creates both main file (`.FCStd`) and working file (`.FCStd.work`)
+2. **Edit** the document - all changes go to the working file, auto-saved every 5 operations
+3. **Commit** changes - validates and saves working file to main file (only way main file is updated)
+4. **Rollback** if needed - discard working file changes and reset from main file
+
+**Path Resolution:**
+
+All document paths support flexible formats:
+- **Filename only**: `"bracket.FCStd"` → resolves to `~/freecad_projects/bracket.FCStd`
+- **Relative path**: `"designs/bracket.FCStd"` → resolves to `~/freecad_projects/designs/bracket.FCStd`
+- **Absolute path**: `"~/custom/bracket.FCStd"` → uses exact path specified
+
+This makes it easy to work with projects without typing full paths every time.
 
 ### Manual Server Start
 
@@ -171,12 +208,22 @@ The FreeCAD GUI provides full interactive viewing:
 adam_mcp/
 ├── src/
 │   └── adam_mcp/
-│       └── __init__.py         # Main package
-├── .venv/                      # UV virtual environment
-├── freecad_env.py              # Explicit FreeCAD environment setup
-├── .env                        # Environment variables
-├── pyproject.toml              # Project configuration
-└── README.md                   # This file
+│       ├── __init__.py          # Package metadata
+│       ├── server.py            # FastMCP server entry point
+│       ├── constants.py         # All constants (single source of truth)
+│       ├── models.py            # Pydantic models for type safety
+│       ├── utils.py             # Core utilities (validation, path resolution)
+│       ├── working_files.py     # Working file infrastructure
+│       ├── freecad_env.py       # FreeCAD environment setup
+│       └── tools/
+│           └── document.py      # Document management tools
+├── dev_projects/                # Local development CAD files (gitignored)
+├── .venv/                       # UV virtual environment
+├── .envrc                       # Direnv config (auto-activation + dev settings)
+├── .env                         # Environment variables (optional)
+├── .mcp.json                    # MCP server configuration
+├── pyproject.toml               # Project configuration
+└── README.md                    # This file
 ```
 
 ## Dependencies
@@ -198,15 +245,26 @@ adam_mcp/
 1. **Auto-activation**: The virtual environment activates automatically when entering the project directory
    - Powered by `direnv` + `.envrc` configuration
    - No need to run `source .venv/bin/activate`
+   - Auto-sets `ADAM_MCP_DEFAULT_DIR=./dev_projects` for local testing
 
-2. **Dependency management**: Use UV for all package operations
+2. **Local testing**: All test projects go to `./dev_projects/` (gitignored)
+   ```bash
+   # Create test files - they stay local and don't pollute ~/freecad_projects
+   create_document("test_bracket.FCStd")  # → ./dev_projects/test_bracket.FCStd
+   list_projects()                         # → lists files in ./dev_projects/
+
+   # Clean up test files easily
+   rm -rf dev_projects/*.FCStd
+   ```
+
+3. **Dependency management**: Use UV for all package operations
    ```bash
    uv sync              # Sync dependencies from uv.lock
    uv sync --extra dev  # Include dev dependencies (linters, formatters)
    uv pip install pkg   # Add a new package
    ```
 
-3. **Code quality**: Pre-commit hooks run automatically on `git commit`
+4. **Code quality**: Pre-commit hooks run automatically on `git commit`
    ```bash
    pre-commit run --all-files  # Run manually on all files
    ```
