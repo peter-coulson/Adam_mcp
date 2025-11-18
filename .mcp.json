@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "adam-mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "fastmcp",
+        "run",
+        "src/adam_mcp/server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    }
+  }
+}

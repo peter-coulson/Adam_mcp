@@ -22,7 +22,7 @@ repos:
     rev: v1.7.1
     hooks:
       - id: mypy
-        additional_dependencies: [pydantic>=2.0.0]
+        additional_dependencies: [pydantic>=2.0.0, fastmcp>=1.0.0]
         args: [--config-file=pyproject.toml]
 
   # Standard pre-commit hooks

@@ -4,14 +4,21 @@ FreeCAD MCP Server - A Model Context Protocol server for programmatic CAD operat
 
 ## Project Status
 
-**Setup Complete** - Ready for MCP server implementation
+**MCP Server Foundation Complete** - Ready for CAD tool implementation
 
-## Features (Planned)
+## Features
 
-- Full FreeCAD Python API integration
-- MCP server for AI-driven CAD operations
+**Implemented:**
+- ✓ FreeCAD Python API integration
+- ✓ FastMCP server with type-safe operations
+- ✓ Document management (create, query)
+- ✓ Health monitoring
+
+**Planned:**
+- Sketch creation and geometry tools
+- Extrude operations
+- Fillet operations
 - Export to multiple formats (STEP, STL, OBJ, etc.)
-- Pydantic models for type-safe CAD operations
 
 ## Installation
 
@@ -85,6 +92,62 @@ You should see:
 ✓ FreeCAD imported successfully
 ✓ Created test box
 ✓ Setup test passed!
+```
+
+## Using the MCP Server
+
+### Project-Scoped Configuration
+
+The MCP server is configured for this project via `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "adam-mcp": {
+      "command": "uv",
+      "args": ["run", "fastmcp", "run", "src/adam_mcp/server.py"],
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    }
+  }
+}
+```
+
+This configuration:
+- ✓ Uses FastMCP CLI (gold standard)
+- ✓ Sets PYTHONPATH via env (best practice for src layout)
+- ✓ No wrapper scripts needed
+- ✓ Checked into version control for team sharing
+
+**Available Tools:**
+- `health_check` - Verify server and FreeCAD integration status
+- `create_document` - Create or reuse a FreeCAD document
+- `get_document_info` - Query active document details
+
+### Manual Server Start
+
+To run the server manually for testing (FastMCP CLI - gold standard):
+
+```bash
+PYTHONPATH=src uv run fastmcp run src/adam_mcp/server.py
+```
+
+For development with debug logging and MCP Inspector:
+
+```bash
+PYTHONPATH=src uv run fastmcp dev src/adam_mcp/server.py
+```
+
+The `PYTHONPATH=src` ensures the package can be imported correctly with the src layout.
+
+### Claude Code Integration
+
+When you open this project in Claude Code, it will automatically detect the `.mcp.json` configuration and prompt you to approve the MCP server. Once approved, Claude can use the CAD tools directly.
+
+To reset project MCP approvals:
+```bash
+claude mcp reset-project-choices
 ```
 
 ## Viewing CAD Files

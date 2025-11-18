@@ -22,7 +22,10 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 - **Direct API integration** - No socket layers, direct FreeCAD imports (simpler than reference implementation)
 - **Tool-centric design** - Each tool is self-contained with validation + execution logic
 - **Separation of concerns** - MCP tool definitions separate from FreeCAD operations
-- **Single-file server** - Keep server under 500 LOC. Extract only when clear module boundaries emerge
+- **Modular when meaningful** - Keep server.py focused on MCP tools and FreeCAD operations (<500 LOC). Extract when:
+  - Infrastructure concerns (environment setup, platform config)
+  - Shared utilities (reused >3 times)
+  - Clear, independent boundaries (zero coupling to server logic)
 
 ### Implementation Guidance
 

@@ -6,11 +6,21 @@ Key technical choices and rationale for adam-mcp.
 
 ## Core Architecture
 
-### Single-File Server (< 500 LOC)
+### Focused Server Architecture
 
-**Decision:** Keep server in `src/adam_mcp/server.py`
+**Decision:** Keep MCP server logic in `src/adam_mcp/server.py` (<500 LOC). Extract infrastructure and utilities when boundaries are clear.
 
-**Rationale:** 3-5 tools = ~300-450 LOC, easier to understand/debug/deploy. Split when >500 LOC or clear module boundaries emerge.
+**Valid extractions:**
+- ✅ `freecad_env.py` - Environment setup (must run before imports, platform-specific, reusable)
+- ✅ Shared utilities (reused >3 times across tools)
+- ✅ Infrastructure concerns (config, platform logic) with zero coupling to server
+
+**Invalid extractions (premature abstraction):**
+- ❌ `utils.py` with <3 functions
+- ❌ Directory structure (models/, validators/) for small codebases
+- ❌ Splitting MCP tool definitions across files
+
+**Rationale:** Prevent premature abstraction while allowing meaningful separation. 3-5 tools = ~300-450 LOC server.py is maintainable. Infrastructure concerns (environment setup) deserve separate modules when they have clear, independent boundaries.
 
 ### Direct FreeCAD Imports
 
