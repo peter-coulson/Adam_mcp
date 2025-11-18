@@ -56,63 +56,24 @@ context/
 
 1. **One source of truth** - Each decision documented once
 2. **WHY over WHAT** - Explain rationale, not mechanics
-3. **Pointer over duplication** - Link to code examples, don't reproduce them
+3. **Pointer over duplication** - Link to code, don't reproduce (max 5-10 line examples)
 4. **Scannable** - Bullet points and short sections over prose
-
-### Code Examples
-
-**Maximum:** 5-10 lines per example
-**Purpose:** Illustrate pattern only
-**Always include:** Pointer to actual file for full implementation
-
-**Good example:**
-```python
-# Pattern: Units in parameter names
-def create_box(width_mm: float, height_mm: float) -> str:
-    """..."""
-
-# Full implementation: src/adam_mcp/server.py:45
-```
-
-**Bad example:** 50-line complete function definition
 
 ### Maintenance
 
-**When to update:**
-- Major architectural change (e.g., splitting single-file into modules)
-- New tool category added (different from sketch/extrude/fillet pattern)
-- Design constraint discovered (FreeCAD API limitation)
-
-**When NOT to update:**
-- Adding individual tools following existing pattern
-- Parameter tweaks
-- Bug fixes
-- Refactoring that doesn't change architecture
-
-**Health check:** Run `/context-check` to validate:
-- File references are valid
-- Size limits respected
-- No duplication across files
-- No secrets in docs
+**Update when:** Major architectural change, new tool category, design constraints discovered
+**Don't update for:** Individual tools, parameter tweaks, bug fixes, internal refactoring
+**Health check:** Run `/context-check` to validate references, size limits, duplication, secrets
 
 ---
 
-## Usage
+## Quick Reference
 
-**Starting new work?**
-Read `DECISIONS.md` (2 min read) to understand rationale.
-
-**Making architectural change?**
-Update `DECISIONS.md` with new decision + rationale.
-
-**Adding standard tool?**
-No context update needed - follow existing patterns in code.
-
-**Onboarding collaborator?**
-Point them to `CLAUDE.md` → `context/README.md` → `context/DECISIONS.md` (5 min total).
+- **New work:** Read `DECISIONS.md` (2 min)
+- **Architectural change:** Update `DECISIONS.md`
+- **Standard tool:** No update needed
+- **Onboarding:** `CLAUDE.md` → `context/` (5 min total)
 
 ---
 
 **Last Updated:** 2025-11-18
-**Total Context Lines:** ~50 (README) + ~80 (DECISIONS) = ~130 lines
-**Status:** ✅ Under target (150 lines)
