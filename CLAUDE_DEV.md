@@ -4,16 +4,26 @@ Minimal MCP server exposing CAD operations for FreeCAD through the Model Context
 
 ## MVP Scope
 
-**Target:** Engineering-grade machine parts (pipe flanges, washers, nuts, bolts)
-**Demo Success Criteria:**
-- **Part 1 (Creation):** "Create 4-inch Class 150 pipe flange" → Complete ISO 7005 flange in ~2 minutes
-- **Part 2 (Modification):** "Modify M3 nyloc nut properties" → Edit pre-existing complex part beyond current creation capabilities
+**Target:** Engineering-grade machine parts (spindles, shafts, bolts)
+
+**Demo Structure:** Two separate chat sessions
+
+**Chat 1 - Creation + Iteration:**
+- Part 1: Create elongated spindle shaft (5 stepped cylinders: 80mm → 65mm → 50mm → 35mm → 20mm)
+- Part 2: Mirror the spindle → Symmetrical double-sided shaft
+- Demonstrates: Sequential creation, iterative modification, commit workflow
+
+**Chat 2 - Discovery + Modification:**
+- Part 1: List projects, open bolt head, inspect structure
+- Part 2: Make bolt head much larger
+- Demonstrates: Project discovery, file inspection, targeted modification, commit workflow
 
 **Why This Demo:**
-- ✅ Pipe flange looks 100% complete (no threads needed - flanges use bolts)
-- ✅ Nyloc nut demonstrates modification of complex parts (uses Revolution, Chamfer, Fusion operations we don't have yet)
-- ✅ Both parts fully professional - no visible incompleteness
-- ✅ Shows full creation workflow + modification workflow
+- ✅ Chat 1 shows creation workflow (primitives → complex geometry)
+- ✅ Chat 2 shows project management + inspection workflow
+- ✅ Both showcase mandatory commit workflow
+- ✅ Clear separation of use cases (create vs modify existing)
+- ✅ Realistic mechanical components
 
 **Tech Stack:** Python 3.10+, FreeCAD, FastMCP, Pydantic
 
@@ -164,7 +174,7 @@ src/adam_mcp/
 ## Quality Checklist (before marking work complete)
 
 1. ✓ No magic numbers or duplicate strings? (ALL constants in `constants/`)
-2. ✓ Tool validated with real example via FreeCAD GUI (e.g., pipe flange creation)?
+2. ✓ Tool validated with real example via FreeCAD GUI (e.g., spindle shaft creation)?
 3. ✓ Error messages explain what went wrong + how to fix?
 4. ✓ Type hints on all functions? (mypy must pass)
 5. ✓ Tool docstrings clear for Claude to understand?

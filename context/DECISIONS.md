@@ -6,19 +6,20 @@ Core technical choices and rationale for adam-mcp.
 
 ## MVP Scope & Success
 
-**Goal:** Demonstrate creation + modification workflows with complete-looking industrial parts
+**Goal:** Demonstrate sequential creation and iterative modification in a single conversation
 
 **Success criteria:**
-- **Part 1 (Creation):** Create 4-inch Class 150 pipe flange from sketches (concentric circles → pad → bolt holes → raised face)
-- **Part 2 (Modification):** Modify pre-existing M3 nyloc nut properties (inspect → modify pocket depth, chamfer size, nylon ring position)
+- **Part 1 (Creation):** Create elongated spindle shaft (5 stepped cylinders: 80mm × 40mm → 65mm × 80mm → 50mm × 100mm → 35mm × 90mm → 20mm × 70mm)
+- **Part 2 (Iteration):** Mirror the spindle to create symmetrical double-sided shaft
 - Show 3-layer validation + clear error messages
-- Both parts look 100% complete (no missing visual features like threads)
+- Demonstrate conversational workflow (create → inspect → extend)
 
 **Rationale:**
-- Pipe flange looks complete (flanges use bolts, don't need threads)
-- Nyloc nut demonstrates editing beyond current creation capabilities (uses Revolution, Chamfer, Fusion operations we don't have yet)
-- Shows real engineering value (ISO 7005 flange, ISO fastener)
-- Demonstrates full creation workflow + modification workflow
+- Spindle demonstrates sequential primitive creation and positioning
+- Mirroring shows Claude can analyze and extend existing geometry
+- Pure creation workflow (no pre-existing files needed)
+- Clear visual progression (stepped diameters, symmetrical result)
+- Realistic mechanical component
 
 See **OPERATIONS.md** for implementation status.
 
@@ -142,12 +143,12 @@ See **OPERATIONS.md** for expansion roadmap.
 
 **Rationale:**
 - Speed-to-demo prioritized over test infrastructure
-- Visual validation sufficient (does pipe flange look correct?)
+- Visual validation sufficient (does spindle look correct?)
 - Real-world testing more valuable (create actual industrial parts)
 - Small surface area (7 operations) - manageable to validate manually
 
 **Validation approach:**
-1. Create test parts via MCP (pipe flange, modify nyloc nut)
+1. Create test parts via MCP (spindle shaft, mirrored geometry)
 2. Open in FreeCAD GUI
 3. Verify dimensions, geometry, feature tree
 4. Test error handling with invalid inputs
