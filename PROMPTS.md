@@ -78,16 +78,45 @@ Open the bolt head project and understand its structure
 ## Part 2: Modify Bolt Head
 
 ```
-Make the bolt head much larger
+Show me in the GUI
 ```
 
 **Expected workflow:**
-- Claude identifies which object is the bolt head
-- Claude modifies the relevant dimension (radius/height)
+- Claude calls `open_in_freecad_gui()` to display current model
+- User sees bolt head structure visually
+
+**Then:**
+```
+Make the head twice as large
+```
+
+**Expected workflow:**
+- Claude identifies hex head geometry (sketch + pad)
+- Claude creates new larger sketch with double radius (18mm)
+- Claude creates new pad from larger sketch with double thickness (14mm)
 - Claude calls `open_in_freecad_gui()` at END
-- User sees enlarged bolt head
+- User sees doubled-size hex head
 - **Claude MUST prompt user to commit changes**
+
+**Then:**
+```
+Commit the changes
+```
+
+**Expected workflow:**
 - User runs: `commit_changes()`
+- Changes validated and saved to main file
+
+**Then (optional exploration):**
+```
+What could you do without failing the first time as an edit to this image?
+Could you extend the length of the cylinder? What is best
+```
+
+**Expected workflow:**
+- Claude analyzes modifiable properties
+- Claude recommends cylinder Height modification as most reliable
+- Demonstrates understanding of what operations are safe vs. risky
 
 ---
 
