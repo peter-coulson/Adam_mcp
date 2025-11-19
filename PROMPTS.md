@@ -87,15 +87,14 @@ Show me in the GUI
 
 **Then:**
 ```
-Make the head twice as large
+Make the shaft twice as long
 ```
 
 **Expected workflow:**
-- Claude identifies hex head geometry (sketch + pad)
-- Claude creates new larger sketch with double radius (18mm)
-- Claude creates new pad from larger sketch with double thickness (14mm)
+- Claude identifies shaft geometry (cylinder or pad)
+- Claude modifies shaft length/height property to double the current value
 - Claude calls `open_in_freecad_gui()` at END
-- User sees doubled-size hex head
+- User sees doubled-length shaft
 - **Claude MUST prompt user to commit changes**
 
 **Then:**
