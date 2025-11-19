@@ -27,9 +27,9 @@ See **OPERATIONS.md** for implementation status.
 
 ## Operation Selection: Workflows Over Polish
 
-**Decision:** 7 operations prioritizing core workflows over polish features
+**Decision:** 8 operations prioritizing core workflows over polish features
 
-**The 7 operations:**
+**The 8 operations:**
 1. CreateCylinder - Simple primitives
 2. CreateSketch, AddSketchCircle - Sketch-based workflow
 3. CreatePad, CreatePocket - Extrude and cut
@@ -97,7 +97,7 @@ See **OPERATIONS.md** for expansion roadmap.
 
 **Files:**
 - Main (`design.FCStd`) - Stable, git-tracked
-- Working (`design.FCStd.work`) - Experimental, auto-saved every 5 ops
+- Working (`design_work.FCStd`) - Experimental, auto-saved every 5 ops
 
 **Workflow:** open → edit → commit (validates first) or rollback
 
@@ -145,7 +145,7 @@ See **OPERATIONS.md** for expansion roadmap.
 - Speed-to-demo prioritized over test infrastructure
 - Visual validation sufficient (does spindle look correct?)
 - Real-world testing more valuable (create actual industrial parts)
-- Small surface area (7 operations) - manageable to validate manually
+- Small surface area (8 operations) - manageable to validate manually
 
 **Validation approach:**
 1. Create test parts via MCP (spindle shaft, mirrored geometry)

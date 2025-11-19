@@ -8,14 +8,15 @@ Operation types, MVP status, and expansion strategy for adam-mcp.
 
 **Goal:** Demonstrate three core workflows through M10 bolt + washer creation
 
-**The 7 operations:**
+**The 8 operations:**
 1. ✅ **create_cylinder** - Cylindrical primitives (bolt shaft)
 2. ✅ **create_sketch** - 2D sketches on XY/XZ/YZ planes
 3. ✅ **add_sketch_circle** - Circles in sketches (washer profile/hole)
-4. ✅ **create_pad** - Extrude sketch into solid (washer body)
-5. ✅ **create_pocket** - Cut from solid using sketch (washer hole)
-6. ✅ **create_thread** - Add ISO metric threads (bolt threads)
-7. ✅ **modify_object** - Edit object properties (change dimensions post-creation)
+4. ✅ **add_sketch_polygon** - Regular polygons (hexagons, octagons)
+5. ✅ **create_pad** - Extrude sketch into solid (washer body)
+6. ✅ **create_pocket** - Cut from solid using sketch (washer hole)
+7. ✅ **create_thread** - Add ISO metric threads (bolt threads)
+8. ✅ **modify_object** - Edit object properties (change dimensions post-creation)
 
 **Coverage:** Complete CAD workflows
 - Primitive-based creation (cylinder → thread)

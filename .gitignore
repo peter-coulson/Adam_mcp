@@ -45,4 +45,4 @@ Thumbs.db
 dev_projects/*
 !dev_projects/test_samples/
 !dev_projects/test_samples/*.FCStd
-*.work
+*_work.FCStd

@@ -23,18 +23,3 @@ AUTO_SAVE_INTERVAL = 1  # Save working file every N operations (immediate GUI sy
 WORK_FILE_SUFFIX = "_work"  # Suffix for working files (inserted before .FCStd extension)
 VALIDATE_BEFORE_COMMIT = True  # Safety gate for commits
 WORK_DIR_ENV_VAR = "ADAM_MCP_WORK_DIR"  # Environment variable for custom work directory
-
-# ============================================================================
-# Operation Categories (for discovery tool)
-# ============================================================================
-
-# Operation categories for discovery (populated incrementally during MVP implementation)
-OPERATION_CATEGORIES: dict[str, list[str]] = {
-    "primitives": [
-        "create_cylinder",  # Iteration 1
-    ],
-    "sketches": [],
-    "features": [],
-    "booleans": [],
-    "modifications": [],
-}

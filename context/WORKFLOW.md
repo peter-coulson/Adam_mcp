@@ -9,7 +9,7 @@ User experience and workflow architecture for adam-mcp's file management system.
 When working on CAD designs through adam-mcp, users interact with two files:
 
 1. **Main file** (`design.FCStd`) - Stable, committed design (git-tracked)
-2. **Working file** (`design.FCStd.work`) - Experimental workspace (auto-saved, git-ignored)
+2. **Working file** (`design_work.FCStd`) - Experimental workspace (auto-saved, git-ignored)
 
 **Core principle:** Working file is the sandbox. Main file is the source of truth. User decides when sandbox → truth.
 
@@ -23,7 +23,7 @@ open_document → edit (auto-save) → commit → [git commit main file]
               rollback (if needed)
 ```
 
-**Resume by default:** Opening always continues from existing .work file (never overwrites uncommitted changes)
+**Resume by default:** Opening always continues from existing work file (never overwrites uncommitted changes)
 **Explicit commit:** User must explicitly commit changes (validates geometry first)
 **Explicit rollback:** Only way to discard uncommitted work and reset from main file
 
@@ -43,7 +43,7 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 ### Resume by Default
 
-**Decision:** `open_document()` and `create_document()` NEVER overwrite existing .work files. Always resume from existing work.
+**Decision:** `open_document()` and `create_document()` NEVER overwrite existing work files. Always resume from existing work.
 
 **Rationale:** Preserve uncommitted changes, safe to call open multiple times, supports multiple sessions, deliberate discard via rollback
 
@@ -81,9 +81,9 @@ open_document → edit (auto-save) → commit → [git commit main file]
 
 ### Work File Location: Same Directory as Main File
 
-**Decision:** `design.FCStd.work` sits next to `design.FCStd` by default.
+**Decision:** `design_work.FCStd` sits next to `design.FCStd` by default.
 
-**Rationale:** Simplicity (no config), visibility, natural cleanup, git-friendly (`*.work`), portability
+**Rationale:** Simplicity (no config), visibility, natural cleanup, git-friendly (`*_work.FCStd`), portability
 
 **Configuration Override:**
 
@@ -92,11 +92,11 @@ For advanced users, override default location via environment variable:
 ```bash
 # Use custom directory for all working files
 export ADAM_MCP_WORK_DIR="/Users/peter/cad_workspace"
-# Results in: /Users/peter/cad_workspace/design.FCStd.work
+# Results in: /Users/peter/cad_workspace/design_work.FCStd
 
 # Use system temp directory
 export ADAM_MCP_WORK_DIR="temp"
-# Results in: /tmp/adam_mcp_work/design.FCStd.work
+# Results in: /tmp/adam_mcp_work/design_work.FCStd
 ```
 
 **Use cases for override:**
@@ -110,7 +110,7 @@ export ADAM_MCP_WORK_DIR="temp"
 
 ### Open in FreeCAD GUI
 
-**Decision:** `open_in_freecad_gui()` launches FreeCAD desktop app with .work file for live preview.
+**Decision:** `open_in_freecad_gui()` launches FreeCAD desktop app with work file for live preview.
 
 **Rationale:** Visual feedback, side-by-side workflow (terminal + GUI), real-time iteration, standard CAD workflow
 
@@ -143,7 +143,7 @@ export ADAM_MCP_WORK_DIR="temp"
 
 **Constants:** All workflow constants in `src/adam_mcp/constants.py`
 - `AUTO_SAVE_INTERVAL = 5`
-- `WORK_FILE_SUFFIX = ".work"`
+- `WORK_FILE_SUFFIX = "_work"`
 - `VALIDATE_BEFORE_COMMIT = True`
 
 ---
@@ -152,14 +152,14 @@ export ADAM_MCP_WORK_DIR="temp"
 
 **Recommended .gitignore:**
 ```gitignore
-*.work
+*_work.FCStd
 ```
 
 **Workflow:**
-1. User works through adam-mcp (edits .work file)
+1. User works through adam-mcp (edits work file)
 2. User commits changes (validates, updates main file)
 3. User git commits main file
-4. .work file ignored by git (ephemeral workspace)
+4. Work file ignored by git (ephemeral workspace)
 
 ---
 

@@ -111,7 +111,7 @@ def execute_create_cylinder(op: CreateCylinder, doc) -> str:
 
 ## Tool Scaling
 
-**Current: 7 operations (MVP)**
+**Current: 8 operations (MVP)**
 - ~60 LOC per operation (model + handler + function + tool)
 - Clear, maintainable
 

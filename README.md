@@ -1,33 +1,34 @@
 # adam-mcp
 
-FreeCAD MCP Server - A Model Context Protocol server for programmatic CAD operations using FreeCAD.
+**MCP server for creating and editing industrial CAD parts in FreeCAD.**
 
-## Project Status
+Built in 8 hours to demonstrate conversational CAD via Model Context Protocol.
 
-**MCP Server Foundation Complete** - Ready for CAD tool implementation
+## What It Does
 
-## Features
+Create and modify mechanical parts using natural language in Claude Code:
 
-**Implemented:**
-- ✓ FreeCAD Python API integration
-- ✓ FastMCP server with type-safe operations
-- ✓ Document management (create, open, commit, rollback)
-- ✓ Default projects directory with environment variable configuration
-- ✓ Project listing and discovery
-- ✓ Working file system with auto-save
-- ✓ Health monitoring
-- ✓ Object inspection (list objects, get detailed properties)
-- ✓ Primitive creation (cylinders with position and angle control)
-- ✓ Sketch creation and geometry tools (circles, polygons)
-- ✓ Extrude operations (pad and pocket)
-- ✓ Thread creation (ISO metric threads)
-- ✓ Object modification (property editing)
+```
+"Create a simple washer - 20mm outer diameter, 11mm hole, 3mm thick"
+```
 
-**Planned:**
-- Fillet and chamfer operations
-- Boolean operations (union, cut, intersection)
-- Export to multiple formats (STEP, STL, OBJ, etc.)
-- Additional primitives (box, sphere, cone)
+Claude will create sketches, extrude geometry, and open FreeCAD GUI for preview.
+
+**Core capabilities:** Cylinders, sketches (circles/polygons), extrusion (pad/pocket), threads, property modification
+
+**Example parts:** Stepped spindle shafts, washers, bolt heads with metric threads
+
+See `PROMPTS.md` for detailed demo workflows.
+
+## Current Operations
+
+**7 Core CAD Operations:**
+- Cylinders, sketches, circles, polygons, extrusion (pad/pocket), threads, modify properties
+
+**17 Supporting Tools:**
+- Document management, project discovery, object inspection, GUI preview
+
+See full tool list in "Using the MCP Server" section below.
 
 ## Quick Start
 
@@ -185,7 +186,7 @@ This configuration:
 
 The server uses a **working file system** for safe editing:
 
-1. **Create or open** a document - creates both main file (`.FCStd`) and working file (`.FCStd.work`)
+1. **Create or open** a document - creates both main file (`.FCStd`) and working file (`_work.FCStd`)
 2. **Edit** the document - all changes go to the working file, auto-saved every 5 operations
 3. **Commit** changes - validates and saves working file to main file (only way main file is updated)
 4. **Rollback** if needed - discard working file changes and reset from main file
@@ -262,9 +263,7 @@ adam_mcp/
 │       ├── operations/          # Business logic (handlers, validators)
 │       ├── tools/               # MCP tools
 │       │   ├── document.py      # Document management
-│       │   ├── query.py         # Query tools (list/details)
-│       │   ├── discovery.py     # List available operations
-│       │   └── execution.py     # Execute operations
+│       │   └── query.py         # Query tools (list/details)
 │       └── utils/               # Helper functions
 │           ├── errors.py        # Error formatting
 │           ├── validation.py    # Validation utilities
