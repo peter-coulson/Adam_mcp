@@ -16,12 +16,40 @@ FreeCAD MCP Server - A Model Context Protocol server for programmatic CAD operat
 - ✓ Project listing and discovery
 - ✓ Working file system with auto-save
 - ✓ Health monitoring
+- ✓ Object inspection (list objects, get detailed properties)
+- ✓ Primitive creation (cylinders with position and angle control)
+- ✓ Sketch creation and geometry tools (circles, polygons)
+- ✓ Extrude operations (pad and pocket)
+- ✓ Thread creation (ISO metric threads)
+- ✓ Object modification (property editing)
 
 **Planned:**
-- Sketch creation and geometry tools
-- Extrude operations
-- Fillet operations
+- Fillet and chamfer operations
+- Boolean operations (union, cut, intersection)
 - Export to multiple formats (STEP, STL, OBJ, etc.)
+- Additional primitives (box, sphere, cone)
+
+## Quick Start
+
+After installation (see below), use Claude Code to create CAD parts with natural language:
+
+```
+# In Claude Code with adam-mcp server enabled:
+
+"Create a simple washer - 20mm outer diameter, 11mm hole, 3mm thick"
+```
+
+Claude will:
+1. Open FreeCAD GUI for preview
+2. Create a sketch with two circles (outer and hole)
+3. Extrude the sketch to create the 3D washer
+4. Open the result in FreeCAD GUI for verification
+5. Prompt you to commit the changes
+
+See `PROMPTS.md` for detailed demo examples including:
+- Creating complex multi-part assemblies (stepped spindle shafts)
+- Modifying existing projects (bolt heads, threads)
+- Project discovery and inspection workflows
 
 ## Installation
 
@@ -82,7 +110,7 @@ By default, projects are saved to `~/Documents/Projects/adam_mcp/dev_projects`. 
 export ADAM_MCP_DEFAULT_DIR="~/my_cad_projects"
 ```
 
-For development, the `.envrc` file automatically sets this to `./dev_projects` when you're in the project directory.
+For development, the `.envrc` file automatically sets this to `./dev_projects` (relative to project root) when you're in the project directory.
 
 Add these to your `.env` file to make them permanent:
 ```
@@ -92,21 +120,14 @@ ADAM_MCP_DEFAULT_DIR=~/my_cad_projects
 
 ## Testing the Setup
 
-Run the environment setup script to verify FreeCAD integration:
+You can verify FreeCAD integration by starting the MCP server and using the health check tool:
 
 ```bash
-python freecad_env.py
-# or with UV
-uv run python freecad_env.py
+# Start the server in dev mode
+PYTHONPATH=src uv run fastmcp dev src/adam_mcp/core/server.py
 ```
 
-You should see:
-```
-✓ FreeCAD environment configured
-✓ FreeCAD imported successfully
-✓ Created test box
-✓ Setup test passed!
-```
+Then use the `health_check_tool` via your MCP client (e.g., Claude Code) to verify the server is running and FreeCAD is properly integrated.
 
 ## Using the MCP Server
 
@@ -135,6 +156,8 @@ This configuration:
 - ✓ Checked into version control for team sharing
 
 **Available Tools:**
+
+*Document Management:*
 - `health_check_tool` - Verify server and FreeCAD integration status
 - `create_document_tool` - Create a new FreeCAD document (or resume existing working file)
 - `open_document_tool` - Open an existing FreeCAD document for editing
@@ -143,6 +166,20 @@ This configuration:
 - `rollback_working_changes_tool` - Discard uncommitted changes and reset from main file
 - `list_projects_tool` - List all FreeCAD projects in a directory (defaults to projects directory)
 - `open_in_freecad_gui_tool` - Open the working file in FreeCAD desktop application for live preview
+
+*Object Inspection:*
+- `list_objects_tool` - List all objects in active document (lightweight overview)
+- `get_object_details_tool` - Get detailed properties for specific objects
+
+*CAD Operations:*
+- `create_cylinder_tool` - Create cylindrical primitive with position and angle control
+- `create_sketch_tool` - Create 2D sketch on specified plane (XY, XZ, or YZ)
+- `add_sketch_circle_tool` - Add circle to existing sketch
+- `add_sketch_polygon_tool` - Add regular polygon to existing sketch (3-12 sides)
+- `create_pad_tool` - Extrude sketch into 3D solid (PartDesign Pad)
+- `create_pocket_tool` - Cut material from solid using sketch profile (PartDesign Pocket)
+- `create_thread_tool` - Add ISO metric threads to cylindrical surface (M3-M30)
+- `modify_object_tool` - Modify properties of existing objects (resize, reposition, etc.)
 
 **Document Management Workflow:**
 
@@ -306,7 +343,7 @@ adam_mcp/
 ruff check .          # Lint code
 ruff check --fix .    # Lint and auto-fix
 black .               # Format code
-mypy src/ freecad_env.py  # Type check
+mypy src/             # Type check
 ```
 
 ### Configuration Files
@@ -317,11 +354,18 @@ mypy src/ freecad_env.py  # Type check
 - **.python-version** - Python version for this project (3.11)
 - **.envrc** - Direnv configuration for auto-activation
 
-### Quality Standards
+### Development Standards
 
-Per `CLAUDE.md`, all code must follow:
-- ✓ Type hints on all functions
-- ✓ No magic numbers or duplicate strings
+See `CLAUDE_DEV.md` for comprehensive development principles, architecture decisions, and quality standards.
+
+Key principles:
+- ✓ Type hints on all functions (strict mypy)
+- ✓ No magic numbers or duplicate strings (all constants in `constants/`)
 - ✓ DRY principle - extract constants/config
 - ✓ Error messages explain what went wrong AND how to fix it
 - ✓ Simplicity over cleverness
+- ✓ 3-layer validation: Pydantic → Semantic → Geometry
+
+For AI-assisted development with Claude Code, the project includes:
+- **CLAUDE.md** - User-facing workflow and commit policy (system prompt for CAD operations)
+- **CLAUDE_DEV.md** - Developer-focused principles and architecture guidance
